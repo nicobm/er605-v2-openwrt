@@ -424,7 +424,11 @@ ok "sysntpd disabled"
 # Configure Cloudflare NTS
 info "Adding Cloudflare NTS server..."
 
-# Remove existing server entries to avoid duplicates
+# Remove existing server and pool entries to avoid duplicates
+# (OpenWrt ships with a default pool '2.openwrt.pool.ntp.org' that overrides NTS)
+while uci -q get chrony.@pool[0] >/dev/null 2>&1; do
+    uci delete chrony.@pool[0]
+done
 while uci -q get chrony.@server[0] >/dev/null 2>&1; do
     uci delete chrony.@server[0]
 done
