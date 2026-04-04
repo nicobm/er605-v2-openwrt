@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ER605 v2 → OpenWrt Guide</title>
+  <meta name="description" content="Complete guide to flash OpenWrt on TP-Link ER605 v2. Encrypted DNS, ad blocking, NTP with NTS, and more.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{display:['Bricolage Grotesque','sans-serif'],body:['Source Sans 3','sans-serif'],mono:['JetBrains Mono','monospace']}}}}</script>
+  <script>
+    // Early dark mode detection — follows system preference
+    (function(){
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js" integrity="sha512-8pbzenDolL1l5OPSsoURCx9TEdMFTaeFipASVrMYKhuYtly+k3tcsQYliOEKTmuB1t7yuzAiVo+yd7SJz+ijFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    body{font-family:'Source Sans 3',sans-serif}
+    h1,h2,h3,h4,h5,h6,.font-display{font-family:'Bricolage Grotesque',sans-serif}
+    code,pre,.font-mono{font-family:'JetBrains Mono',monospace}
+    ::selection{background:#34d39980;color:#fff}
+    .dark ::selection{background:#10b98160}
+    pre{position:relative;overflow-x:auto}
+    pre .copy-code{position:absolute;top:.5rem;right:.5rem;opacity:0;transition:opacity .2s}
+    pre:hover .copy-code{opacity:1}
+    details summary{cursor:pointer}
+    details summary::-webkit-details-marker{display:none}
+    details summary::marker{display:none;content:''}
+    .step-number{counter-increment:step;display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:9999px;font-weight:700;font-size:.875rem;flex-shrink:0}
+    nav a.active{color:#10b981;border-color:#10b981}
+    @media(max-width:1023px){.sidebar{display:none}}
+    .fade-in{animation:fadeIn .4s ease-out}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    html{scroll-behavior:smooth;scroll-padding-top:5rem}
+    /* Table styling */
+    .prose-table table{width:100%;border-collapse:collapse;font-size:.875rem}
+    .prose-table th,.prose-table td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid}
+    .prose-table th{font-weight:600}
+    .light .prose-table th,.light .prose-table td{border-color:#e5e7eb}
+    .dark .prose-table th,.dark .prose-table td{border-color:#374151}
+    .light .prose-table th{background:#f9fafb}
+    .dark .prose-table th{background:#1f2937}
+  </style>
+</head>
+<body class="bg-zinc-50 text-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 transition-colors duration-300">
+
+<!-- Top bar -->
+<header class="sticky top-0 z-50 backdrop-blur-lg bg-zinc-50/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+    <a href="#top" class="flex items-center gap-2.5 group">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center group-hover:bg-emerald-500/25 transition">
+        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+      </div>
+      <span class="font-display font-bold text-sm tracking-tight">ER605 v2 <span class="text-emerald-600 dark:text-emerald-400">→</span> OpenWrt</span>
+    </a>
+    <div class="flex items-center gap-2">
+      <!-- Language toggle -->
+      <button id="langToggle" onclick="toggleLang()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition cursor-pointer bg-white dark:bg-zinc-900">
+        <span id="langFlag">🇬🇧</span>
+        <span id="langLabel">EN</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 flex gap-8">
+
+  <!-- Sidebar nav (desktop) -->
+  <aside class="sidebar hidden lg:block w-56 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8 pr-4 border-r border-zinc-200 dark:border-zinc-800">
+    <nav id="sideNav" class="space-y-1 text-sm">
+      <a href="#overview" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Overview" data-es="Resumen">Overview</a>
+      <a href="#compatibility" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Compatibility" data-es="Compatibilidad">Compatibility</a>
+      <a href="#password-gen" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Password Generator" data-es="Generador de contraseñas">Password Generator</a>
+      <a href="#flash-guide" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Flash Guide" data-es="Guía de flasheo">Flash Guide</a>
+      <a href="#post-install" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Post-Install" data-es="Post-instalación">Post-Install</a>
+      <a href="#encrypted-dns" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Encrypted DNS" data-es="DNS cifrado">Encrypted DNS</a>
+      <a href="#ad-blocking" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Ad Blocking" data-es="Bloqueo de ads">Ad Blocking</a>
+      <a href="#ntp-nts" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="NTP + NTS" data-es="NTP + NTS">NTP + NTS</a>
+      <a href="#firewall" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Firewall Hardening" data-es="Hardening del firewall">Firewall Hardening</a>
+      <a href="#performance" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Performance" data-es="Rendimiento">Performance</a>
+      <a href="#commands" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Quick Reference" data-es="Referencia rápida">Quick Reference</a>
+      <a href="#post-reboot" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Post-Reboot Check" data-es="Verificar tras reinicio">Post-Reboot Check</a>
+      <a href="#troubleshooting" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Troubleshooting" data-es="Solución de problemas">Troubleshooting</a>
+      <a href="#revert" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Revert to Stock" data-es="Volver al stock">Revert to Stock</a>
+      <a href="#usage-guide" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Usage Guide" data-es="Guía de uso">Usage Guide</a>
+      <a href="#sysupgrade" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Sysupgrade Guide" data-es="Guía de sysupgrade">Sysupgrade Guide</a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 min-w-0 py-8 lg:py-12 lg:pl-8">
+    <div class="max-w-3xl">
+
+      <!-- ============== HERO ============== -->
+      <section id="top" class="mb-16 fade-in">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mb-6">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span data-en="Tested &amp; verified — April 2026" data-es="Probado y verificado — Abril 2026">Tested &amp; verified — April 2026</span>
+        </div>
+        <h1 class="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.1] mb-6">
+          <span data-en="Flash OpenWrt on" data-es="Flashear OpenWrt en">Flash OpenWrt on</span><br>
+          <span class="text-emerald-600 dark:text-emerald-400">TP-Link ER605 v2</span>
+        </h1>
+        <p class="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xl" data-en="Complete guide: from stock firmware to a fully configured OpenWrt router with encrypted DNS, network-wide ad blocking, and secure NTP." data-es="Guía completa: desde el firmware de fábrica hasta un router OpenWrt totalmente configurado con DNS cifrado, bloqueo de publicidad en toda la red y NTP seguro.">Complete guide: from stock firmware to a fully configured OpenWrt router with encrypted DNS, network-wide ad blocking, and secure NTP.</p>
+
+        <!-- Device specs card -->
+        <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">SoC</div>
+            <div class="text-sm font-semibold">MT7621AT</div>
+          </div>
+          <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">RAM</div>
+            <div class="text-sm font-semibold">128 MB</div>
+          </div>
+          <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">Target</div>
+            <div class="text-sm font-mono font-semibold">ramips/mt7621</div>
+          </div>
+          <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">OpenWrt</div>
+            <div class="text-sm font-semibold">25.12.2</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== OVERVIEW ============== -->
+      <section id="overview" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4 flex items-center gap-3">
+          <span class="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">i</span>
+          <span data-en="Overview" data-es="Resumen">Overview</span>
+        </h2>
+        <div class="space-y-4 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+          <p data-en="This guide covers replacing the stock TP-Link firmware on the ER605 v2 with OpenWrt. It applies to all hardware revisions (V2.0, V2.20, V2.26, V2.60) — the limiting factor is the <strong class='text-zinc-800 dark:text-zinc-200'>firmware version</strong>, not the hardware revision." data-es="Esta guía cubre el reemplazo del firmware de fábrica de TP-Link del ER605 v2 por OpenWrt. Aplica a todas las revisiones de hardware (V2.0, V2.20, V2.26, V2.60) — el factor limitante es la <strong class='text-zinc-800 dark:text-zinc-200'>versión de firmware</strong>, no la revisión de hardware.">This guide covers replacing the stock TP-Link firmware on the ER605 v2 with OpenWrt. It applies to all hardware revisions (V2.0, V2.20, V2.26, V2.60) — the limiting factor is the <strong class="text-zinc-800 dark:text-zinc-200">firmware version</strong>, not the hardware revision.</p>
+          <p data-en="Based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2 hover:text-emerald-500'>chill1Penguin's method</a>. The password generator, backup scripts, and initramfs image come from that project." data-es="Basado en el <a href='https://github.com/chill1Penguin/er605v2_openwrt_install' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2 hover:text-emerald-500'>método de chill1Penguin</a>. El generador de contraseñas, los scripts de backup y la imagen initramfs provienen de ese proyecto.">Based on <a href="https://github.com/chill1Penguin/er605v2_openwrt_install" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2 hover:text-emerald-500">chill1Penguin's method</a>. The password generator, backup scripts, and initramfs image come from that project.</p>
+        </div>
+      </section>
+
+      <!-- ============== WARNINGS ============== -->
+      <section class="mb-16">
+        <div class="space-y-3">
+          <div class="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+            <div class="flex gap-3">
+              <span class="text-red-500 text-lg mt-0.5 shrink-0">⚠</span>
+              <div class="text-sm">
+                <p class="font-semibold text-red-700 dark:text-red-300 mb-1" data-en="Do NOT connect to the internet" data-es="NO conectar a internet">Do NOT connect to the internet</p>
+                <p class="text-red-600/80 dark:text-red-300/70" data-en="Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working." data-es="Mantener el cable WAN desconectado durante todo el proceso de flasheo. Si el router detecta acceso a internet, TP-Link requiere un token firmado online y la contraseña generada localmente deja de funcionar.">Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working.</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+            <div class="flex gap-3">
+              <span class="text-red-500 text-lg mt-0.5 shrink-0">⚠</span>
+              <div class="text-sm">
+                <p class="font-semibold text-red-700 dark:text-red-300 mb-1" data-en="No factory recovery after flashing" data-es="Sin recuperación de fábrica después del flasheo">No factory recovery after flashing</p>
+                <p class="text-red-600/80 dark:text-red-300/70" data-en="After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup." data-es="Después de flashear OpenWrt, el modo de recuperación de emergencia del ER605 queda deshabilitado. La única forma de volver al firmware de fábrica es via ubiformat desde la consola de OpenWrt usando tu backup MTD.">After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup.</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+            <div class="flex gap-3">
+              <span class="text-red-500 text-lg mt-0.5 shrink-0">⚠</span>
+              <div class="text-sm">
+                <p class="font-semibold text-red-700 dark:text-red-300 mb-1" data-en="Bricking risk" data-es="Riesgo de brickeo">Bricking risk</p>
+                <p class="text-red-600/80 dark:text-red-300/70" data-en="If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process." data-es="Si se corta la energía durante el flasheo, el router puede quedar brickeado permanentemente. Usar una fuente de energía estable y no desconectar nada durante el proceso.">If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== COMPATIBILITY ============== -->
+      <section id="compatibility" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Firmware Compatibility" data-es="Compatibilidad de firmware">Firmware Compatibility</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4" data-en="The hardware revision (V2.0, V2.20, etc.) does NOT matter. Only the firmware version matters." data-es="La revisión de hardware (V2.0, V2.20, etc.) NO importa. Solo importa la versión de firmware.">The hardware revision (V2.0, V2.20, etc.) does NOT matter. Only the firmware version matters.</p>
+        <div class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 prose-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Firmware</th>
+                <th data-en="Status" data-es="Estado">Status</th>
+                <th data-en="Root Access Method" data-es="Método de acceso root">Root Access Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-mono text-sm">≤ 2.0.1</td>
+                <td><span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">✅ <span data-en="Works" data-es="Funciona">Works</span></span></td>
+                <td class="text-sm" data-en="Direct root login with &quot;root password&quot;" data-es="Login directo como root con &quot;root password&quot;">Direct root login with "root password"</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-sm">2.1.1 – 2.2.5</td>
+                <td><span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">✅ <span data-en="Works" data-es="Funciona">Works</span></span></td>
+                <td class="text-sm" data-en="GUI login + enable + debug + CLI debug password" data-es="Login GUI + enable + debug + CLI debug password">GUI login + enable + debug + CLI debug password</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-sm">2.2.6</td>
+                <td><span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold text-xs">❌ <span data-en="Blocked" data-es="Bloqueado">Blocked</span></span></td>
+                <td class="text-sm" data-en="Local password generator patched out" data-es="Generador local de contraseñas parcheado">Local password generator patched out</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-sm">2.3.0 – 2.3.3</td>
+                <td><span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold text-xs">❌ <span data-en="Blocked" data-es="Bloqueado">Blocked</span></span></td>
+                <td class="text-sm" data-en="RSA-signed tokens + anti-rollback. Downgrade impossible." data-es="Tokens firmados con RSA + anti-rollback. Downgrade imposible.">RSA-signed tokens + anti-rollback. Downgrade impossible.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+          <p class="text-sm text-amber-700 dark:text-amber-300" data-en="<strong>Firmware 2.2.6+ is confirmed blocked.</strong> Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass." data-es="<strong>Firmware 2.2.6+ está confirmado como bloqueado.</strong> Probado en vivo en Marzo 2026: el downgrade de 2.3.3 a 2.2.5 fue imposible usando Emergency Recovery, rollback por GUI, rollback por SSH y factory reset. Si tu router ya tiene 2.2.6+, tus opciones son: contactar soporte TP-Link, comprar otro ER605 con 2.2.5, o esperar un bypass de la comunidad."><strong>Firmware 2.2.6+ is confirmed blocked.</strong> Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass.</p>
+        </div>
+      </section>
+
+      <!-- ============== PASSWORD GENERATOR ============== -->
+      <section id="password-gen" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4 flex items-center gap-3">
+          <span class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+          </span>
+          <span data-en="Password Generator" data-es="Generador de contraseñas">Password Generator</span>
+        </h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="Generates root and debug passwords locally in your browser. Nothing is sent to any server. Only works with firmware ≤ 2.2.5." data-es="Genera las contraseñas root y debug localmente en tu navegador. Nada se envía a ningún servidor. Solo funciona con firmware ≤ 2.2.5.">Generates root and debug passwords locally in your browser. Nothing is sent to any server. Only works with firmware ≤ 2.2.5.</p>
+
+        <div class="space-y-4 mt-6">
+          <div>
+            <label for="macAddr" class="block text-sm font-semibold mb-1.5" data-en="MAC Address" data-es="Dirección MAC">MAC Address</label>
+            <p class="text-xs text-zinc-400 mb-2" data-en="Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF." data-es="Se encuentra en la etiqueta en la parte inferior del ER605 o en System Status. Formatos: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, o AABBCCDDEEFF.">Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF.</p>
+            <input type="text" id="macAddr" placeholder="AA:BB:CC:DD:EE:FF" oninput="generatePasswords()" class="font-mono w-full px-4 py-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm tracking-wider focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30">
+            <p id="macErr" class="hidden text-xs text-red-500 mt-1" data-en="Invalid MAC address. Must contain exactly 12 hex characters." data-es="Dirección MAC inválida. Debe contener exactamente 12 caracteres hexadecimales.">Invalid MAC address. Must contain exactly 12 hex characters.</p>
+          </div>
+          <div>
+            <label for="uname" class="block text-sm font-semibold mb-1.5" data-en="Username" data-es="Nombre de usuario">Username</label>
+            <p class="text-xs text-zinc-400 mb-2" data-en="The username you use to log in to the web GUI." data-es="El usuario que usás para entrar a la GUI web.">The username you use to log in to the web GUI.</p>
+            <input type="text" id="uname" placeholder="admin" oninput="generatePasswords()" class="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30">
+          </div>
+        </div>
+
+        <div id="pwResults" class="mt-6 space-y-3 hidden">
+          <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest" data-en="Generated Passwords" data-es="Contraseñas generadas">Generated Passwords</div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Root password</span>
+              <button onclick="copyText('pwRoot',this)" class="text-xs text-zinc-400 hover:text-emerald-500 flex items-center gap-1 cursor-pointer"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span class="cp-label">Copy</span></button>
+            </div>
+            <span id="pwRoot" class="font-mono text-lg tracking-wider select-all">—</span>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-3">
+            <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider" data-en="CLI debug mode password" data-es="Contraseña del modo debug CLI">CLI debug mode password</span>
+            <div class="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div>
+                <span class="text-xs text-zinc-500">v2.1.2 &amp; below</span>
+                <div id="pwCli212" class="font-mono text-sm tracking-wider mt-0.5 select-all">—</div>
+              </div>
+              <button onclick="copyText('pwCli212',this)" class="text-xs text-zinc-400 hover:text-emerald-500 flex items-center gap-1 cursor-pointer"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span class="cp-label">Copy</span></button>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-zinc-500">v2.2.2 – 2.2.5</span>
+                <div id="pwCli222" class="font-mono text-sm tracking-wider mt-0.5 select-all">—</div>
+              </div>
+              <button onclick="copyText('pwCli222',this)" class="text-xs text-zinc-400 hover:text-emerald-500 flex items-center gap-1 cursor-pointer"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span class="cp-label">Copy</span></button>
+            </div>
+          </div>
+          <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/70">
+            <span class="font-semibold text-red-700 dark:text-red-300">v2.2.6+:</span>
+            <span data-en="Password generator does not work. TP-Link changed the authentication mechanism." data-es="El generador de contraseñas no funciona. TP-Link cambió el mecanismo de autenticación.">Password generator does not work. TP-Link changed the authentication mechanism.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== FLASH GUIDE ============== -->
+      <section id="flash-guide" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Flash Guide" data-es="Guía de flasheo">Flash Guide</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-8" data-en="Estimated time: 30–45 minutes. Requirements: a Linux PC, an ethernet cable, ssh, curl, python3, md5sum." data-es="Tiempo estimado: 30–45 minutos. Requisitos: una PC con Linux, un cable ethernet, ssh, curl, python3, md5sum.">Estimated time: 30–45 minutes. Requirements: a Linux PC, an ethernet cable, ssh, curl, python3, md5sum.</p>
+
+        <!-- Phase 1 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs" data-en="Phase 1 — Preparation (with internet)" data-es="Fase 1 — Preparación (con internet)">Phase 1 — Preparation (with internet)</h3>
+
+          <div class="space-y-8">
+            <!-- Step 1 -->
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">1</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Download everything" data-es="Descargar todo">Download everything</h4>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Your PC needs internet for this step. Download all files before touching the router." data-es="Tu PC necesita internet para este paso. Descargá todos los archivos antes de tocar el router.">Your PC needs internet for this step. Download all files before touching the router.</p>
+
+                <p class="text-sm font-semibold mb-2" data-en="1a. Generate the debug password using the generator above." data-es="1a. Generá la contraseña debug usando el generador de arriba.">1a. Generate the debug password using the generator above.</p>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-1" data-en="Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version." data-es="Guardá ambas contraseñas CLI debug en un archivo de texto — vas a necesitar la correcta según tu versión de firmware.">Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version.</p>
+
+                <p class="text-sm font-semibold mt-4 mb-2" data-en="1b. Download flashing files:" data-es="1b. Descargar archivos de flasheo:">1b. Download flashing files:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>mkdir -p ~/er605_flash
+cd ~/er605_flash
+curl -o er605v2_write_initramfs.sh https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/er605v2_write_initramfs.sh
+curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/openwrt-initramfs-compact.bin</code></pre>
+
+                <p class="text-sm font-semibold mt-4 mb-2" data-en="1c. Download sysupgrade image:" data-es="1c. Descargar imagen de sysupgrade:">1c. Download sysupgrade image:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># Sysupgrade 25.12.2 (latest stable):</span>
+curl -o openwrt-25.12.2-sysupgrade.bin https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+
+                <p class="text-sm font-semibold mt-4 mb-2" data-en="1d. Verify you have everything:" data-es="1d. Verificar que tenés todo:">1d. Verify you have everything:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ls -la ~/er605_flash/</code></pre>
+                <p class="text-sm text-zinc-500 mt-2" data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y el archivo .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file.</p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">2</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Disconnect internet &amp; verify firmware" data-es="Desconectar internet y verificar firmware">Disconnect internet &amp; verify firmware</h4>
+                <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
+                  <li data-en="Disconnect the WAN cable from the router" data-es="Desconectá el cable WAN del router">Disconnect the WAN cable from the router</li>
+                  <li data-en="Connect your PC to a LAN port via ethernet" data-es="Conectá tu PC a un puerto LAN via cable ethernet">Connect your PC to a LAN port via ethernet</li>
+                  <li data-en="Go to <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.0.1</code> and check the <strong>Firmware Version</strong> in System Status" data-es="Andá a <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.0.1</code> y verificá la <strong>Firmware Version</strong> en System Status">Go to <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">http://192.168.0.1</code> and check the <strong>Firmware Version</strong> in System Status</li>
+                </ol>
+                <p class="text-sm text-zinc-500 mt-3" data-en="If firmware is 2.2.5 or earlier → continue. If 2.2.6+ → you're blocked." data-es="Si el firmware es 2.2.5 o anterior → continuá. Si es 2.2.6+ → estás bloqueado.">If firmware is 2.2.5 or earlier → continue. If 2.2.6+ → you're blocked.</p>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">3</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Enable SSH on the router" data-es="Habilitar SSH en el router">Enable SSH on the router</h4>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400" data-en="In the web GUI: <strong>System Tools → Diagnostics → Remote Assistance</strong> → enable it." data-es="En la GUI web: <strong>System Tools → Diagnostics → Remote Assistance</strong> → habilitarlo.">In the web GUI: <strong>System Tools → Diagnostics → Remote Assistance</strong> → enable it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs" data-en="Phase 2 — SSH Access" data-es="Fase 2 — Acceso SSH">Phase 2 — SSH Access</h3>
+          <div class="space-y-8">
+            <!-- Step 4 -->
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">4</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Connect via SSH" data-es="Conectar via SSH">Connect via SSH</h4>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:" data-es="El servidor SSH del ER605 usa algoritmos legacy que las distros modernas bloquean por defecto. Pasalos directamente en el comando:">The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr admin@192.168.0.1</code></pre>
+                <p class="text-sm text-zinc-500 mt-2" data-en="Use your GUI username (usually admin). Password is the same as the GUI." data-es="Usá tu usuario de la GUI (generalmente admin). La contraseña es la misma de la GUI.">Use your GUI username (usually admin). Password is the same as the GUI.</p>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead." data-es="<strong>Nota:</strong> scp no funciona con el ER605 — el shell imprime banners que corrompen la transferencia. Usá el método del servidor HTTP en el Paso 8."><strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead.</div>
+              </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">5</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Enter debug mode" data-es="Entrar en modo debug">Enter debug mode</h4>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Once inside SSH, run:" data-es="Una vez dentro de SSH, ejecutá:">Once inside SSH, run:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>enable
+debug</code></pre>
+                <p class="text-sm text-zinc-500 mt-2" data-en="Paste the CLI debug mode password from Step 1. If it works, you'll have a root shell." data-es="Pegá la contraseña del modo debug CLI del Paso 1. Si funciona, vas a tener un shell root.">Paste the CLI debug mode password from Step 1. If it works, you'll have a root shell.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs" data-en="Phase 3 — MTD Backup (strongly recommended)" data-es="Fase 3 — Backup MTD (muy recomendado)">Phase 3 — MTD Backup (strongly recommended)</h3>
+          <div class="space-y-8">
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">6</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Back up all MTD partitions" data-es="Hacer backup de todas las particiones MTD">Back up all MTD partitions</h4>
+                <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/80 mb-4" data-en="Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this." data-es="Sin este backup, restaurar el firmware de fábrica requiere soldar una consola serial UART a la PCB. No te saltees esto.">Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this.</div>
+
+                <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden mb-3" open>
+                  <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
+                    <svg class="w-4 h-4 text-zinc-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <span data-en="Option A: Network backup with netcat (recommended)" data-es="Opción A: Backup por red con netcat (recomendado)">Option A: Network backup with netcat (recommended)</span>
+                  </summary>
+                  <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 space-y-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <p data-en="No USB needed. Two scripts handle everything: one runs on your PC and receives the data, the other runs on the router and sends it. Partitions are streamed directly without storing anything in the router's RAM." data-es="No se necesita USB. Dos scripts se encargan de todo: uno corre en tu PC y recibe la data, el otro corre en el router y la envía. Las particiones se transmiten directamente sin guardar nada en la RAM del router.">No USB needed. Two scripts handle everything: one runs on your PC and receives the data, the other runs on the router and sends it. Partitions are streamed directly without storing anything in the router's RAM.</p>
+
+                    <p class="font-semibold text-zinc-800 dark:text-zinc-200" data-en="Step 1 — Find your PC's IP:" data-es="Paso 1 — Averiguá la IP de tu PC:">Step 1 — Find your PC's IP:</p>
+                    <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ip -4 addr show | grep "192.168.0"</code></pre>
+                    <p data-en="Note the IP (e.g. 192.168.0.109). You'll need it below." data-es="Anotá la IP (ej. 192.168.0.109). La vas a necesitar abajo.">Note the IP (e.g. 192.168.0.109). You'll need it below.</p>
+
+                    <!-- Sub-accordion: Our scripts -->
+                    <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                      <summary class="px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 text-xs font-semibold flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <span data-en="Method 1: Simple scripts (one partition per connection)" data-es="Método 1: Scripts simples (una partición por conexión)">Method 1: Simple scripts (one partition per connection)</span>
+                      </summary>
+                      <div class="p-3 space-y-3 border-t border-zinc-200 dark:border-zinc-700">
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="receive_backup.sh — run on your PC:" data-es="receive_backup.sh — correr en tu PC:">receive_backup.sh — run on your PC:</p>
+                        <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>#!/bin/bash
+# receive_backup.sh — Run on your PC
+# Receives all MTD partitions from the ER605 via netcat
+
+DIR=~/er605_backup
+mkdir -p "$DIR"
+
+PARTITIONS="0:Bootloader 1:Config 2:Factory 3:firmware 4:panic-oops 5:partition-table 6:support-list 7:device-info 8:device-info.b 9:tddp 10:tddp.b 11:bootloader 12:kernel 13:rootfs 14:firmware-info 15:extra-para 16:log 17:rootfs_data 18:bootloader.b 19:kernel.b 20:rootfs.b 21:firmware-info.b 22:extra-para.b 23:log.b 24:rootfs_data.b 25:log_recovery 26:database"
+
+for PART in $PARTITIONS; do
+    NUM="${PART%%:*}"
+    NAME="${PART##*:}"
+    FILE="$DIR/mtd${NUM}_${NAME}.bin"
+    echo ""
+    echo "=== Waiting for mtd${NUM} (${NAME})... ==="
+    nc -l -p 9090 > "$FILE"
+    SIZE=$(stat -c%s "$FILE" 2>/dev/null || echo 0)
+    echo "    Received: $FILE ($SIZE bytes)"
+done
+
+echo ""
+echo "=== Backup complete ==="
+ls -lh "$DIR"</code></pre>
+                        <div class="p-2 rounded bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If <code>nc -l -p 9090</code> gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to <code>nc -l 9090</code> without the <code>-p</code> flag." data-es="Si <code>nc -l -p 9090</code> da error (común en Debian/Ubuntu con OpenBSD netcat), cambialo a <code>nc -l 9090</code> sin el flag <code>-p</code>.">If <code>nc -l -p 9090</code> gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to <code>nc -l 9090</code> without the <code>-p</code> flag.</div>
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="send_backup.sh — run on the router:" data-es="send_backup.sh — correr en el router:">send_backup.sh — run on the router:</p>
+                        <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>#!/bin/ash
+# send_backup.sh — Run on the ER605 router (ash/BusyBox)
+# Usage: ash send_backup.sh YOUR_PC_IP
+
+PC_IP="$1"
+
+if [ -z "$PC_IP" ]; then
+    echo "Usage: ash send_backup.sh YOUR_PC_IP"
+    exit 1
+fi
+
+i=0
+while [ -e "/dev/mtd${i}ro" ]; do
+    NAME=$(grep "mtd${i}:" /proc/mtd | cut -d'"' -f2)
+    echo ""
+    echo "=== Sending mtd${i} (${NAME})... ==="
+    dd if="/dev/mtd${i}ro" | nc "$PC_IP" 9090
+    echo "    mtd${i} sent."
+    sleep 2
+    i=$((i + 1))
+done
+
+echo ""
+echo "=== All partitions sent ==="</code></pre>
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="How to use:" data-es="Cómo usarlo:">How to use:</p>
+                        <ol class="list-decimal list-inside text-xs space-y-1">
+                          <li data-en="Transfer <code>send_backup.sh</code> to the router via the HTTP server: <code>curl -o /tmp/send_backup.sh http://YOUR_PC_IP:8080/send_backup.sh</code>" data-es="Transferí <code>send_backup.sh</code> al router via el servidor HTTP: <code>curl -o /tmp/send_backup.sh http://IP_DE_TU_PC:8080/send_backup.sh</code>">Transfer <code>send_backup.sh</code> to the router via the HTTP server: <code>curl -o /tmp/send_backup.sh http://YOUR_PC_IP:8080/send_backup.sh</code></li>
+                          <li data-en="Run <code>./receive_backup.sh</code> on your PC (it waits for each partition)" data-es="Corré <code>./receive_backup.sh</code> en tu PC (espera cada partición)">Run <code>./receive_backup.sh</code> on your PC (it waits for each partition)</li>
+                          <li data-en="Run <code>ash /tmp/send_backup.sh YOUR_PC_IP</code> on the router" data-es="Corré <code>ash /tmp/send_backup.sh IP_DE_TU_PC</code> en el router">Run <code>ash /tmp/send_backup.sh YOUR_PC_IP</code> on the router</li>
+                        </ol>
+                      </div>
+                    </details>
+
+                    <!-- Sub-accordion: chill1Penguin's scripts -->
+                    <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                      <summary class="px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 text-xs font-semibold flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <span data-en="Method 2: chill1Penguin's scripts (with auto md5sum verification)" data-es="Método 2: Scripts de chill1Penguin (con verificación md5sum automática)">Method 2: chill1Penguin's scripts (with auto md5sum verification)</span>
+                      </summary>
+                      <div class="p-3 space-y-3 border-t border-zinc-200 dark:border-zinc-700">
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="backup.sh — paste and run on the router:" data-es="backup.sh — pegar y ejecutar en el router:">backup.sh — paste and run on the router:</p>
+                        <p class="text-xs" data-en="Edit <code>BACKUP_HOST</code> to match your PC's IP, then paste this entire block into the router's shell:" data-es="Editá <code>BACKUP_HOST</code> con la IP de tu PC, después pegá todo este bloque en el shell del router:">Edit <code>BACKUP_HOST</code> to match your PC's IP, then paste this entire block into the router's shell:</p>
+                        <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>cat &lt;&lt; "EOF" > /tmp/backup.sh
+#!/bin/sh
+
+BACKUP_HOST="192.168.0.100"  # Your PC's IP address
+BACKUP_PORT="9999"            # Port to use for transfer
+echo "Backup host ${BACKUP_HOST}"
+
+echo -n > /tmp/md5sums
+
+cat /proc/mtd | tail -n+2 | while read; do
+  MTD_DEV=$(echo ${REPLY} | cut -f1 -d:)
+  MTD_NAME=$(echo ${REPLY} | cut -f2 -d\")
+  FILENAME="${MTD_DEV}_${MTD_NAME}.backup"
+
+  echo "Backing up ${MTD_DEV} (${MTD_NAME})"
+  # First send filename
+  echo "$FILENAME" | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+  sleep 1
+  # Then send the data
+  dd if=/dev/${MTD_DEV}ro | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+  SUM=$(dd if=/dev/${MTD_DEV}ro | md5sum | cut -f1 -d" ")
+  echo -e "$SUM\t$FILENAME" >> /tmp/md5sums
+  sleep 1
+done
+
+echo md5sums | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+dd if=/tmp/md5sums | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+
+EOF
+
+chmod +x /tmp/backup.sh</code></pre>
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="receive.sh — save and run on your PC:" data-es="receive.sh — guardar y ejecutar en tu PC:">receive.sh — save and run on your PC:</p>
+                        <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>#!/bin/bash
+# receive.sh — Run on your PC
+# Receives MTD backups sent by backup.sh from the router
+
+PORT=9999
+DIR=~/er605_backup
+mkdir -p "$DIR"
+cd "$DIR"
+
+while true; do
+  # Receive filename
+  FILENAME=$(nc -l -p $PORT)
+  FILENAME=$(echo "$FILENAME" | tr -d '\r\n')
+  if [ -z "$FILENAME" ]; then continue; fi
+  echo "Receiving ${FILENAME}..."
+  # Receive file data
+  nc -l -p $PORT > "$FILENAME"
+done</code></pre>
+                        <div class="p-2 rounded bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If <code>nc -l -p</code> gives an error, change to <code>nc -l</code> without <code>-p</code>." data-es="Si <code>nc -l -p</code> da error, cambialo a <code>nc -l</code> sin <code>-p</code>.">If <code>nc -l -p</code> gives an error, change to <code>nc -l</code> without <code>-p</code>.</div>
+
+                        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-xs" data-en="How to use:" data-es="Cómo usarlo:">How to use:</p>
+                        <ol class="list-decimal list-inside text-xs space-y-1">
+                          <li data-en="Run <code>./receive.sh</code> on your PC" data-es="Corré <code>./receive.sh</code> en tu PC">Run <code>./receive.sh</code> on your PC</li>
+                          <li data-en="Run <code>/tmp/backup.sh</code> on the router" data-es="Corré <code>/tmp/backup.sh</code> en el router">Run <code>/tmp/backup.sh</code> on the router</li>
+                          <li data-en="Backup takes ~5 minutes. Don't interrupt it." data-es="El backup tarda ~5 minutos. No lo interrumpas.">Backup takes ~5 minutes. Don't interrupt it.</li>
+                          <li data-en="When done, press Ctrl+C on the PC to stop receive.sh" data-es="Cuando termine, presioná Ctrl+C en la PC para parar receive.sh">When done, press Ctrl+C on the PC to stop receive.sh</li>
+                          <li data-en="Verify: <code>md5sum -c md5sums</code>" data-es="Verificar: <code>md5sum -c md5sums</code>">Verify: <code>md5sum -c md5sums</code></li>
+                        </ol>
+                      </div>
+                    </details>
+
+                    <p class="text-xs" data-en="<strong>Tip:</strong> mtd3 (firmware) is the largest (~130MB) and takes ~2 minutes. The rest are small and take seconds. Store these backups somewhere safe — they're your only way back to stock firmware without a serial console." data-es="<strong>Tip:</strong> mtd3 (firmware) es la más grande (~130MB) y tarda ~2 minutos. El resto son chicas y tardan segundos. Guardá estos backups en un lugar seguro — son tu único camino de vuelta al firmware de fábrica sin una consola serial."><strong>Tip:</strong> mtd3 (firmware) is the largest (~130MB) and takes ~2 minutes. The rest are small and take seconds. Store these backups somewhere safe — they're your only way back to stock firmware without a serial console.</p>
+                    <p class="text-xs" data-en="Original scripts from <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>chill1Penguin/MTD_backup</a>." data-es="Scripts originales de <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>chill1Penguin/MTD_backup</a>.">Original scripts from <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2">chill1Penguin/MTD_backup</a>.</p>
+                  </div>
+                </details>
+                <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                  <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
+                    <svg class="w-4 h-4 text-zinc-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <span data-en="Option B: USB backup" data-es="Opción B: Backup a USB">Option B: USB backup</span>
+                  </summary>
+                  <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 space-y-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <p data-en="Format a 256MB+ USB drive as FAT32, plug it into the router, mount it, and dump all partitions." data-es="Formateá un pendrive de 256MB+ como FAT32, conectalo al router, montalo, y hacé un dump de todas las particiones.">Format a 256MB+ USB drive as FAT32, plug it into the router, mount it, and dump all partitions.</p>
+                    <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>i=0; while [ -e "/dev/mtd${i}ro" ]; do
+    NAME=$(grep "mtd${i}:" /proc/mtd | cut -d'"' -f2)
+    echo "Backing up mtd${i} (${NAME})..."
+    dd if="/dev/mtd${i}ro" of="/mnt/usb/mtd${i}_${NAME}.bin"
+    i=$((i + 1))
+done
+cp /proc/mtd /mnt/usb/proc_mtd.txt
+sync && umount /mnt/usb</code></pre>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs" data-en="Phase 4 — Transfer files to the router" data-es="Fase 4 — Transferir archivos al router">Phase 4 — Transfer files to the router</h3>
+          <div class="space-y-8">
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">7</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Start a temporary HTTP server on your PC" data-es="Iniciar un servidor HTTP temporal en tu PC">Start a temporary HTTP server on your PC</h4>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>cd ~/er605_flash
+python3 -m http.server 8080</code></pre>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Firewall:</strong> If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>." data-es="<strong>Firewall:</strong> Si curl da timeout en el siguiente paso, el firewall de tu PC puede estar bloqueando el puerto 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>."><strong>Firewall:</strong> If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>.</div>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">8</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Download files from the router" data-es="Descargar archivos desde el router">Download files from the router</h4>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>cd /tmp
+curl -o er605v2_write_initramfs.sh http://YOUR_PC_IP:8080/er605v2_write_initramfs.sh
+curl -o openwrt-initramfs-compact.bin http://YOUR_PC_IP:8080/openwrt-initramfs-compact.bin
+chmod +x er605v2_write_initramfs.sh</code></pre>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">9</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Verify checksum" data-es="Verificar checksum">Verify checksum</h4>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>md5sum openwrt-initramfs-compact.bin</code></pre>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-3 mb-2" data-en="The output must match:" data-es="La salida debe coincidir con:">The output must match:</p>
+                <div class="flex items-center gap-2 p-3 rounded-lg bg-zinc-900 border border-zinc-700">
+                  <code class="text-emerald-400 text-xs select-all flex-1 break-all">e06dd6da68b739b2544931a0203292db  openwrt-initramfs-compact.bin</code>
+                  <button onclick="navigator.clipboard.writeText('e06dd6da68b739b2544931a0203292db');var l=this.querySelector('.cp-label');l.textContent='✓';setTimeout(function(){l.textContent='Copy'},1500)" class="text-xs text-zinc-400 hover:text-emerald-500 flex items-center gap-1 cursor-pointer shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span class="cp-label">Copy</span></button>
+                </div>
+                <p class="text-sm text-zinc-500 mt-2" data-en="Source: <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>chill1Penguin/md5sums</a>. If they don't match, do NOT continue." data-es="Fuente: <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>chill1Penguin/md5sums</a>. Si no coinciden, NO continúes.">Source: <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2">chill1Penguin/md5sums</a>. If they don't match, do NOT continue.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-red-500 uppercase tracking-wider text-xs" data-en="Phase 5 — Flashing (point of no return)" data-es="Fase 5 — Flasheo (punto de no retorno)">Phase 5 — Flashing (point of no return)</h3>
+          <div class="space-y-8">
+            <div class="flex gap-4">
+              <div class="step-number bg-red-500/15 text-red-500 border border-red-500/25">10</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Flash the initramfs image" data-es="Flashear la imagen initramfs">Flash the initramfs image</h4>
+                <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/80 mb-3" data-en="Do NOT unplug or power off during this step. A power loss here bricks the router." data-es="NO desconectar ni apagar durante este paso. Un corte de energía aquí brickea el router.">Do NOT unplug or power off during this step. A power loss here bricks the router.</div>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>./er605v2_write_initramfs.sh openwrt-initramfs-compact.bin</code></pre>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="step-number bg-red-500/15 text-red-500 border border-red-500/25">11</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Reboot" data-es="Reiniciar">Reboot</h4>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>reboot</code></pre>
+                <p class="text-sm text-zinc-500 mt-2" data-en="Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal." data-es="Esperá 2–3 minutos. Todos los LEDs se van a apagar, después van a parpadear, y después se van a estabilizar. Esto es normal.">Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal.</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs mt-3 overflow-x-auto"><code><span class="text-zinc-500"># Monitor from your PC:</span>
+while ! ping -c1 -W1 192.168.1.1 &>/dev/null; do echo "Waiting..."; sleep 2; done; echo "Router is up!"</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 6 -->
+        <div class="mb-12">
+          <h3 class="font-display text-lg font-bold mb-6 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-xs" data-en="Phase 6 — OpenWrt Setup" data-es="Fase 6 — Configuración de OpenWrt">Phase 6 — OpenWrt Setup</h3>
+          <div class="space-y-8">
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">12</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Access the installer" data-es="Acceder al instalador">Access the installer</h4>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400" data-en="Open <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> — note the IP changed from 192.168.<strong>0</strong>.1 to 192.168.<strong>1</strong>.1. You should see the &quot;ER605 v2 Installer&quot; page." data-es="Abrí <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> — notá que la IP cambió de 192.168.<strong>0</strong>.1 a 192.168.<strong>1</strong>.1. Deberías ver la página &quot;ER605 v2 Installer&quot;.">Open <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">http://192.168.1.1</code> — note the IP changed from 192.168.<strong>0</strong>.1 to 192.168.<strong>1</strong>.1. You should see the "ER605 v2 Installer" page.</p>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>If it doesn't load:</strong> disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: <code>sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE</code>." data-es="<strong>Si no carga:</strong> desconectá el WiFi de tu PC, esperá más, reconectá el cable ethernet, o probá una IP estática: <code>sudo ip addr add 192.168.1.100/24 dev TU_INTERFAZ</code>."><strong>If it doesn't load:</strong> disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: <code>sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE</code>.</div>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">13</div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-display font-bold mb-2" data-en="Adjust UBI layout &amp; flash sysupgrade 25.12.2" data-es="Ajustar UBI layout y flashear sysupgrade 25.12.2">Adjust UBI layout &amp; flash sysupgrade 25.12.2</h4>
+                <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
+                  <li data-en="Click <strong>&quot;Adjust UBI Layout&quot;</strong> if it says &quot;NOT ADJUSTED&quot;" data-es="Hacé click en <strong>&quot;Adjust UBI Layout&quot;</strong> si dice &quot;NOT ADJUSTED&quot;">Click <strong>"Adjust UBI Layout"</strong> if it says "NOT ADJUSTED"</li>
+                  <li data-en="Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck &quot;Keep settings&quot;</strong>, and click <strong>Flash</strong>" data-es="Subí la imagen sysupgrade <strong>25.12.2</strong>, <strong>desmarcá &quot;Keep settings&quot;</strong>, y hacé click en <strong>Flash</strong>">Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck "Keep settings"</strong>, and click <strong>Flash</strong></li>
+                  <li data-en="Wait several minutes — do NOT power off the router" data-es="Esperá varios minutos — NO apagues el router">Wait several minutes — do NOT power off the router</li>
+                  <li data-en="After reboot, access <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>." data-es="Después del reinicio, accedé a <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → deberías ver <strong>LuCI</strong>. Login: <strong>root</strong>, contraseña: <em>vacía</em>.">After reboot, access <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>.</li>
+                </ol>
+                <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es="Si ves &quot;Image check failed&quot; en rojo, es porque &quot;Keep settings&quot; está marcado. Desmarcalo y el error desaparece. NO uses &quot;Force upgrade&quot;.">If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== POST-INSTALL ============== -->
+      <section id="post-install" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Post-Install Configuration" data-es="Configuración post-instalación">Post-Install Configuration</h2>
+        <div class="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">1.</span>
+            <span data-en="<strong>Change root password:</strong> System → Administration → Router Password" data-es="<strong>Cambiar contraseña root:</strong> System → Administration → Router Password"><strong>Change root password:</strong> System → Administration → Router Password</span>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">2.</span>
+            <span data-en="<strong>Configure SSH:</strong> System → Administration → SSH Access" data-es="<strong>Configurar SSH:</strong> System → Administration → SSH Access"><strong>Configure SSH:</strong> System → Administration → SSH Access</span>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">3.</span>
+            <span data-en="<strong>Enable NAT offloading (critical for performance):</strong> Network → Firewall → Routing/NAT Offloading → enable &quot;Software flow offloading&quot;. Without this, throughput drops ~50%." data-es="<strong>Habilitar NAT offloading (crítico para rendimiento):</strong> Network → Firewall → Routing/NAT Offloading → habilitar &quot;Software flow offloading&quot;. Sin esto, el throughput cae ~50%."><strong>Enable NAT offloading (critical for performance):</strong> Network → Firewall → Routing/NAT Offloading → enable "Software flow offloading". Without this, throughput drops ~50%.</span>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">4.</span>
+            <div>
+              <span data-en="<strong>Set timezone:</strong>" data-es="<strong>Configurar zona horaria:</strong>"><strong>Set timezone:</strong></span>
+              <pre class="mt-2 p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>uci set system.@system[0].timezone='<span class="text-emerald-400 font-bold">YOUR_TZ_STRING</span>'
+uci set system.@system[0].zonename='<span class="text-emerald-400 font-bold">Your/Timezone</span>'
+uci commit system</code></pre>
+              <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400" data-en="Change the values to match your timezone. See the <a href='https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>OpenWrt timezone list</a> for valid values." data-es="Cambiá los valores según tu zona horaria. Consultá la <a href='https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>lista de zonas horarias de OpenWrt</a> para valores válidos.">Change the values to match your timezone. See the <a href="https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2">OpenWrt timezone list</a> for valid values.</p>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">5.</span>
+            <span data-en="<strong>Configure WAN:</strong> Network → Interfaces → WAN (now you can connect the WAN cable)" data-es="<strong>Configurar WAN:</strong> Network → Interfaces → WAN (ahora podés conectar el cable WAN)"><strong>Configure WAN:</strong> Network → Interfaces → WAN (now you can connect the WAN cable)</span>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex gap-3">
+            <span class="text-emerald-500 font-bold">6.</span>
+            <div>
+              <span data-en="<strong>Install useful packages:</strong>" data-es="<strong>Instalar paquetes útiles:</strong>"><strong>Install useful packages:</strong></span>
+              <pre class="mt-2 p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh root@192.168.1.1
+apk update
+apk add luci-app-sqm           <span class="text-zinc-500"># Smart QoS</span>
+apk add luci-proto-wireguard   <span class="text-zinc-500"># Fast VPN</span>
+apk add luci-app-statistics collectd-mod-cpu collectd-mod-memory <span class="text-zinc-500"># Stats</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== ENCRYPTED DNS ============== -->
+      <section id="encrypted-dns" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Encrypted DNS (dnscrypt-proxy2)" data-es="DNS cifrado (dnscrypt-proxy2)">Encrypted DNS (dnscrypt-proxy2)</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4" data-en="All DNS queries from your network will be encrypted via DNSCrypt/DoH before reaching the internet. dnsmasq stays as local DNS, forwarding to dnscrypt-proxy on port 5353." data-es="Todas las consultas DNS de tu red salen cifradas vía DNSCrypt/DoH antes de llegar a internet. dnsmasq sigue siendo el DNS local, reenviando a dnscrypt-proxy en el puerto 5353.">All DNS queries from your network will be encrypted via DNSCrypt/DoH before reaching the internet. dnsmasq stays as local DNS, forwarding to dnscrypt-proxy on port 5353.</p>
+
+        <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 font-mono text-xs overflow-x-auto mb-6">
+          <div class="text-zinc-400 dark:text-zinc-500 mb-2 font-body text-[11px] font-semibold uppercase tracking-widest" data-en="DNS chain" data-es="Cadena DNS">DNS chain</div>
+          <span class="text-blue-500">LAN devices</span> → <span class="text-amber-500">dnsmasq :53</span> + <span class="text-rose-500">blocklist</span> → <span class="text-emerald-500">dnscrypt-proxy :5353</span> → <span class="text-violet-500">Quad9 (encrypted)</span>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Install" data-es="Instalar">Install</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>apk update
+apk add dnscrypt-proxy2</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Configure" data-es="Configurar">Configure</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Edit <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code> — key changes:" data-es="Editá <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code> — cambios importantes:">Edit <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code> — key changes:</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Listen on port 5353 (not 53, that's dnsmasq)</span>
+listen_addresses = ['127.0.0.1:5353']
+
+<span class="text-zinc-500"># Quad9 DoH with DNSSEC + malware filter + ECS</span>
+server_names = ['quad9-doh-ip4-port443-filter-ecs-pri']
+
+<span class="text-zinc-500"># Don't require nofilter — we WANT Quad9's malware filtering</span>
+require_nofilter = false
+
+<span class="text-zinc-500"># Allow expired certs on startup (no battery-backed clock on ER605)</span>
+cert_ignore_timestamp = true
+
+<span class="text-zinc-500"># Cache (recommended for 128MB RAM)</span>
+cache = true
+cache_size = 1024
+cache_min_ttl = 600
+cache_max_ttl = 86400
+
+<span class="text-zinc-500"># Block IPv6 if not used</span>
+block_ipv6 = true</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Important:</strong> Make sure there's only ONE active <code>listen_addresses</code> line. Check with: <code>grep -n '^listen_addresses' /etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code>" data-es="<strong>Importante:</strong> Asegurate de que haya UNA SOLA línea activa de <code>listen_addresses</code>. Verificá con: <code>grep -n '^listen_addresses' /etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code>"><strong>Important:</strong> Make sure there's only ONE active <code>listen_addresses</code> line. Check with: <code>grep -n '^listen_addresses' /etc/dnscrypt-proxy2/dnscrypt-proxy.toml</code></div>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Redirect dnsmasq to dnscrypt-proxy" data-es="Redirigir dnsmasq a dnscrypt-proxy">Redirect dnsmasq to dnscrypt-proxy</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>uci delete dhcp.@dnsmasq[0].server 2>/dev/null
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci set dhcp.@dnsmasq[0].logqueries='0'
+uci commit dhcp
+service dnsmasq restart</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/80" data-en="<strong>Critical: do not skip <code>noresolv='1'</code>.</strong> Without it, dnsmasq still uses the ISP's DNS servers received via DHCP on the WAN interface — your queries will leak to the ISP even though dnscrypt-proxy is running. Verify with: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (must return <code>1</code>)." data-es="<strong>Crítico: no te saltees <code>noresolv='1'</code>.</strong> Sin esto, dnsmasq sigue usando los DNS del ISP que recibe por DHCP en la interfaz WAN — tus consultas se van a filtrar al ISP aunque dnscrypt-proxy esté corriendo. Verificá con: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (debe devolver <code>1</code>)."><strong>Critical: do not skip <code>noresolv='1'</code>.</strong> Without it, dnsmasq still uses the ISP's DNS servers received via DHCP on the WAN interface — your queries will leak to the ISP even though dnscrypt-proxy is running. Verify with: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (must return <code>1</code>).</div>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Enable and verify" data-es="Habilitar y verificar">Enable and verify</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>service dnscrypt-proxy start
+service dnscrypt-proxy enable
+netstat -tlnup | grep 5353       <span class="text-zinc-500"># Should show dnscrypt-proxy</span>
+apk add bind-dig
+dig @127.0.0.1 -p 5353 example.com  <span class="text-zinc-500"># Should resolve</span></code></pre>
+            <p class="text-sm text-zinc-500 mt-3" data-en="From a device on your network, visit <a href='https://dnsleaktest.com' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>dnsleaktest.com</a> → Extended test. You should see Quad9 servers, not your ISP." data-es="Desde un dispositivo de tu red, visitá <a href='https://dnsleaktest.com' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>dnsleaktest.com</a> → Extended test. Deberías ver servidores de Quad9, no los de tu ISP.">From a device on your network, visit <a href="https://dnsleaktest.com" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2">dnsleaktest.com</a> → Extended test. You should see Quad9 servers, not your ISP.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== AD BLOCKING ============== -->
+      <section id="ad-blocking" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Network-wide Ad Blocking" data-es="Bloqueo de publicidad en toda la red">Network-wide Ad Blocking</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6" data-en="Direct dnsmasq-based blocking using the Hagezi Pro++ blocklist (~240,000 domains). No extra packages needed — dnsmasq loads the blocklist from a config directory in <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> (RAM) because the blocklist is too large for the router's limited flash storage (~7MB free). Since <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> is cleared on every reboot, an init script recreates the directory and a hotplug script re-downloads the list when WAN comes up. Blocks ads, tracking, malware, and phishing for every device on the network." data-es="Bloqueo directo con dnsmasq usando la blocklist Hagezi Pro++ (~240.000 dominios). No se necesitan paquetes extra — dnsmasq carga la blocklist desde un directorio en <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> (RAM) porque es demasiado grande para el almacenamiento flash limitado del router (~7MB libres). Como <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> se borra en cada reinicio, un script init recrea el directorio y un script hotplug vuelve a descargar la lista cuando WAN obtiene IP. Bloquea publicidad, tracking, malware y phishing para todos los dispositivos de la red.">Direct dnsmasq-based blocking using the Hagezi Pro++ blocklist (~240,000 domains). No extra packages needed — dnsmasq loads the blocklist from a config directory in <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/tmp</code> (RAM) because the blocklist is too large for the router's limited flash storage (~7MB free). Since <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/tmp</code> is cleared on every reboot, an init script recreates the directory and a hotplug script re-downloads the list when WAN comes up. Blocks ads, tracking, malware, and phishing for every device on the network.</p>
+
+        <div class="space-y-6">
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Set up dnsmasq config directory" data-es="Configurar directorio de configuración de dnsmasq">Set up dnsmasq config directory</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>mkdir -p /tmp/dnsmasq.d
+<span class="text-zinc-500"># delete first to avoid duplicates if you run this more than once</span>
+uci delete dhcp.@dnsmasq[0].confdir 2>/dev/null
+uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
+uci commit dhcp</code></pre>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2 mb-2" data-en="Since <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> is cleared on every reboot, create an init script to recreate the directory <strong>before</strong> dnsmasq starts (priority 18, dnsmasq is 19):" data-es="Como <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp</code> se borra en cada reinicio, creá un script init que recree el directorio <strong>antes</strong> de que arranque dnsmasq (prioridad 18, dnsmasq es 19):">Since <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/tmp</code> is cleared on every reboot, create an init script to recreate the directory <strong>before</strong> dnsmasq starts (priority 18, dnsmasq is 19):</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>cat > /etc/init.d/mkdir-dnsmasq-confdir &lt;&lt; 'EOF'
+#!/bin/sh /etc/rc.common
+START=18
+start() {
+    mkdir -p /tmp/dnsmasq.d
+}
+EOF
+chmod +x /etc/init.d/mkdir-dnsmasq-confdir
+/etc/init.d/mkdir-dnsmasq-confdir enable</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Create the update script" data-es="Crear el script de actualización">Create the update script</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>cat > /usr/sbin/update-blocklist.sh &lt;&lt; 'EOF'
+#!/bin/sh
+curl -s -o /tmp/dnsmasq.d/blocklist.conf \
+  https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/dnsmasq/pro.plus.txt &amp;&amp; \
+/etc/init.d/dnsmasq restart
+EOF
+chmod +x /usr/sbin/update-blocklist.sh</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Download blocklist and verify" data-es="Descargar blocklist y verificar">Download blocklist and verify</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>/usr/sbin/update-blocklist.sh
+wc -l /tmp/dnsmasq.d/blocklist.conf  <span class="text-zinc-500"># Should show ~240k lines</span>
+nslookup ads.google.com              <span class="text-zinc-500"># Should return NXDOMAIN</span>
+nslookup google.com                  <span class="text-zinc-500"># Should resolve normally</span></code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Switch blocklist" data-es="Cambiar blocklist">Switch blocklist</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="You can switch to a different Hagezi blocklist at any time. Edit the URL in the update script. Available options (dnsmasq format):" data-es="Podés cambiar a otra blocklist de Hagezi en cualquier momento. Editá la URL en el script de actualización. Opciones disponibles (formato dnsmasq):">You can switch to a different Hagezi blocklist at any time. Edit the URL in the update script. Available options (dnsmasq format):</p>
+            <div class="overflow-x-auto mb-4">
+              <table class="w-full text-xs border-collapse">
+                <thead>
+                  <tr class="text-left border-b border-zinc-300 dark:border-zinc-700">
+                    <th class="py-2 pr-4 font-semibold" data-en="List" data-es="Lista">List</th>
+                    <th class="py-2 pr-4 font-semibold" data-en="Domains" data-es="Dominios">Domains</th>
+                    <th class="py-2 pr-4 font-semibold">LIST_NAME</th>
+                    <th class="py-2 font-semibold" data-en="Description" data-es="Descripción">Description</th>
+                  </tr>
+                </thead>
+                <tbody class="text-zinc-600 dark:text-zinc-300">
+                  <tr class="border-b border-zinc-200 dark:border-zinc-800">
+                    <td class="py-2 pr-4 font-mono">Light</td>
+                    <td class="py-2 pr-4">~95k</td>
+                    <td class="py-2 pr-4 font-mono">light</td>
+                    <td class="py-2" data-en="Ads + tracking only. Minimal breakage" data-es="Solo ads + tracking. Rotura mínima">Ads + tracking only. Minimal breakage</td>
+                  </tr>
+                  <tr class="border-b border-zinc-200 dark:border-zinc-800">
+                    <td class="py-2 pr-4 font-mono">Multi</td>
+                    <td class="py-2 pr-4">~130k</td>
+                    <td class="py-2 pr-4 font-mono">multi</td>
+                    <td class="py-2" data-en="Ads, tracking, and some malware" data-es="Ads, tracking y algo de malware">Ads, tracking, and some malware</td>
+                  </tr>
+                  <tr class="border-b border-zinc-200 dark:border-zinc-800">
+                    <td class="py-2 pr-4 font-mono">Pro</td>
+                    <td class="py-2 pr-4">~180k</td>
+                    <td class="py-2 pr-4 font-mono">pro</td>
+                    <td class="py-2" data-en="Ads, tracking, malware, phishing" data-es="Ads, tracking, malware, phishing">Ads, tracking, malware, phishing</td>
+                  </tr>
+                  <tr class="border-b border-zinc-200 dark:border-zinc-800 bg-emerald-50 dark:bg-emerald-900/20">
+                    <td class="py-2 pr-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">Pro++</td>
+                    <td class="py-2 pr-4">~240k</td>
+                    <td class="py-2 pr-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">pro.plus</td>
+                    <td class="py-2" data-en="Pro + extra aggressive blocking ← used in this guide" data-es="Pro + bloqueo extra agresivo ← usada en esta guía">Pro + extra aggressive blocking ← used in this guide</td>
+                  </tr>
+                  <tr>
+                    <td class="py-2 pr-4 font-mono">Ultimate</td>
+                    <td class="py-2 pr-4">~350k</td>
+                    <td class="py-2 pr-4 font-mono">ultimate</td>
+                    <td class="py-2" data-en="Maximum blocking. May break some sites" data-es="Bloqueo máximo. Puede romper algunos sitios">Maximum blocking. May break some sites</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="To switch, edit the script and replace <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>pro.plus</code> with the LIST_NAME from the table, then re-run:" data-es="Para cambiar, editá el script y reemplazá <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>pro.plus</code> con el LIST_NAME de la tabla, y volvé a ejecutar:">To switch, edit the script and replace <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">pro.plus</code> with the LIST_NAME from the table, then re-run:</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>sed -i 's|/dnsmasq/.*\.txt|/dnsmasq/<span class="text-emerald-400 font-bold">LIST_NAME</span>.txt|' /usr/sbin/update-blocklist.sh
+/usr/sbin/update-blocklist.sh
+wc -l /tmp/dnsmasq.d/blocklist.conf  <span class="text-zinc-500"># Verify the new domain count</span></code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Auto-update lists daily" data-es="Actualizar listas diariamente">Auto-update lists daily</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>echo '0 4 * * * /usr/sbin/update-blocklist.sh' >> /etc/crontabs/root
+/etc/init.d/cron restart</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Auto-load blocklist on boot" data-es="Cargar blocklist automáticamente al iniciar">Auto-load blocklist on boot</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="The init script above creates the directory, but the blocklist file itself is also lost on reboot. This hotplug script re-downloads it automatically when the WAN interface gets a public IP:" data-es="El script init de arriba crea el directorio, pero el archivo de la blocklist también se pierde al reiniciar. Este script hotplug la vuelve a descargar automáticamente cuando la interfaz WAN obtiene IP pública:">The init script above creates the directory, but the blocklist file itself is also lost on reboot. This hotplug script re-downloads it automatically when the WAN interface gets a public IP:</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>cat > /etc/hotplug.d/iface/99-blocklist &lt;&lt; 'EOF'
+#!/bin/sh
+[ "$ACTION" = ifup ] &amp;&amp; [ "$INTERFACE" = wan ] &amp;&amp; {
+  sleep 5
+  /usr/sbin/update-blocklist.sh
+}
+EOF
+chmod +x /etc/hotplug.d/iface/99-blocklist</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Allowlist a domain" data-es="Agregar un dominio a la allowlist">Allowlist a domain</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="Remove the matching line from the blocklist and restart dnsmasq:" data-es="Eliminá la línea correspondiente de la blocklist y reiniciá dnsmasq:">Remove the matching line from the blocklist and restart dnsmasq:</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>sed -i '/example\.com/d' /tmp/dnsmasq.d/blocklist.conf
+/etc/init.d/dnsmasq restart</code></pre>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="Note: the domain will be re-blocked on the next daily update. For a permanent allowlist, create a separate file:" data-es="Nota: el dominio se volverá a bloquear en la próxima actualización diaria. Para una allowlist permanente, creá un archivo separado:">Note: the domain will be re-blocked on the next daily update. For a permanent allowlist, create a separate file:</p>
+            <pre class="mt-2 p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code><span class="text-zinc-500"># Add to a persistent allowlist that survives updates</span>
+mkdir -p /etc/dnsmasq.d
+echo 'server=/example.com/#' > /etc/dnsmasq.d/allowlist.conf
+uci add_list dhcp.@dnsmasq[0].confdir='/etc/dnsmasq.d'
+uci commit dhcp
+/etc/init.d/dnsmasq restart</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== NTP + NTS ============== -->
+      <section id="ntp-nts" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2">NTP + NTS (Chrony)</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6" data-en="Secure time synchronization with Cloudflare via Network Time Security (NTS). Prevents time-based attacks and serves NTP to all LAN devices." data-es="Sincronización de tiempo segura con Cloudflare vía Network Time Security (NTS). Previene ataques basados en tiempo y sirve NTP a todos los dispositivos de la LAN.">Secure time synchronization with Cloudflare via Network Time Security (NTS). Prevents time-based attacks and serves NTP to all LAN devices.</p>
+
+        <div class="space-y-6">
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Install" data-es="Instalar">Install</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk update
+apk del chrony
+apk add chrony-nts ca-certificates
+rm -f /etc/config/chrony-opkg</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Configure Cloudflare NTS" data-es="Configurar Cloudflare NTS">Configure Cloudflare NTS</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Remove default pool and server entries (pool overrides NTS)</span>
+while uci -q get chrony.@pool[0]; do uci delete chrony.@pool[0]; done
+while uci -q get chrony.@server[0]; do uci delete chrony.@server[0]; done
+
+<span class="text-zinc-500"># Add Cloudflare NTS server</span>
+uci add chrony server
+uci set chrony.@server[-1].hostname='time.cloudflare.com'
+uci set chrony.@server[-1].iburst='yes'
+uci set chrony.@server[-1].nts='yes'
+uci commit chrony
+/etc/init.d/chronyd restart</code></pre>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Serve NTP to your LAN" data-es="Servir NTP a tu LAN">Serve NTP to your LAN</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="By default chrony only syncs its own clock. To make the router act as a local NTP server for all LAN devices, you need to allow your subnet and disable the built-in sysntpd so it doesn't conflict." data-es="Por defecto chrony solo sincroniza su propio reloj. Para que el router actúe como servidor NTP local para todos los dispositivos de la LAN, necesitás permitir tu subred y deshabilitar el sysntpd integrado para que no genere conflictos.">By default chrony only syncs its own clock. To make the router act as a local NTP server for all LAN devices, you need to allow your subnet and disable the built-in sysntpd so it doesn't conflict.</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Disable the built-in NTP server (busybox sysntpd) — chrony replaces it</span>
+/etc/init.d/sysntpd stop
+/etc/init.d/sysntpd disable
+
+<span class="text-zinc-500"># Enable NTP server on port 123 and allow LAN clients</span>
+<span class="text-zinc-500"># We use conf.d because chrony defaults to port 0 (NTP disabled)</span>
+<span class="text-zinc-500"># and the UCI 'allow' option ignores the 'subnet' field.</span>
+mkdir -p /etc/chrony/conf.d
+cat > /etc/chrony/conf.d/ntp-server.conf &lt;&lt; 'EOF'
+port 123
+allow 192.168.1.0/24
+EOF
+/etc/init.d/chronyd restart</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-sky-500/5 border border-sky-500/15 text-xs text-sky-700 dark:text-sky-300" data-en="<strong>How it works:</strong> The router fetches time from Cloudflare using NTS (authenticated + encrypted). It then serves plain NTP to LAN clients. This is fine — NTS protects the internet leg (router ↔ Cloudflare), while the LAN segment (client ↔ router) is already trusted." data-es="<strong>Cómo funciona:</strong> El router obtiene la hora de Cloudflare usando NTS (autenticado + cifrado). Luego sirve NTP plano a los clientes de la LAN. Esto está bien — NTS protege el tramo de internet (router ↔ Cloudflare), mientras que el segmento LAN (cliente ↔ router) ya es confiable."><strong>How it works:</strong> The router fetches time from Cloudflare using NTS (authenticated + encrypted). It then serves plain NTP to LAN clients. This is fine — NTS protects the internet leg (router ↔ Cloudflare), while the LAN segment (client ↔ router) is already trusted.</div>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Verify NTP server + NTS" data-es="Verificar servidor NTP + NTS">Verify NTP server + NTS</h4>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Check NTS sync with Cloudflare</span>
+chronyc sources -a     <span class="text-zinc-500"># Should show time.cloudflare.com with ^*</span>
+chronyc -N authdata    <span class="text-zinc-500"># Mode should be NTS, Cook > 0</span>
+chronyc tracking       <span class="text-zinc-500"># Leap status should be Normal</span>
+
+<span class="text-zinc-500"># Check the router is serving NTP to the LAN</span>
+chronyc serverstats    <span class="text-zinc-500"># NTP packets received > 0 means clients are connecting</span>
+netstat -ulnp | grep 123  <span class="text-zinc-500"># Should show chronyd on 0.0.0.0:123 (all interfaces)</span></code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>If &quot;NTP packets received&quot; stays at 0:</strong> verify that at least one LAN device is configured to use 192.168.1.1 as its NTP server. Also check that <code>netstat -ulnp | grep 123</code> shows <code>0.0.0.0:123</code> (all interfaces) — if it shows <code>127.0.0.1:123</code>, chrony is only serving localhost." data-es="<strong>Si &quot;NTP packets received&quot; se queda en 0:</strong> verificá que al menos un dispositivo de la LAN esté configurado para usar 192.168.1.1 como servidor NTP. También verificá que <code>netstat -ulnp | grep 123</code> muestre <code>0.0.0.0:123</code> (todas las interfaces) — si muestra <code>127.0.0.1:123</code>, chrony solo sirve a localhost."><strong>If "NTP packets received" stays at 0:</strong> verify that at least one LAN device is configured to use 192.168.1.1 as its NTP server. Also check that <code>netstat -ulnp | grep 123</code> shows <code>0.0.0.0:123</code> (all interfaces) — if it shows <code>127.0.0.1:123</code>, chrony is only serving localhost.</div>
+          </div>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="Linux (chrony) — point chrony to router" data-es="Linux (chrony) — apuntar chrony al router">Linux (chrony) — point chrony to router</span>
+            </summary>
+            <div class="p-4 text-sm border-t border-zinc-200 dark:border-zinc-800">
+              <p class="text-zinc-500 dark:text-zinc-400 mb-3" data-en="Many Linux distros (Fedora, RHEL, Arch, etc.) ship with chrony by default. Replace the default NTP pool/server entries with your router:" data-es="Muchas distros Linux (Fedora, RHEL, Arch, etc.) traen chrony por defecto. Reemplazá las entradas pool/server NTP por defecto con tu router:">Many Linux distros (Fedora, RHEL, Arch, etc.) ship with chrony by default. Replace the default NTP pool/server entries with your router:</p>
+              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Find your chrony config (varies by distro)</span>
+<span class="text-zinc-500"># Fedora/RHEL/Arch: /etc/chrony.conf</span>
+<span class="text-zinc-500"># Debian/Ubuntu:    /etc/chrony/chrony.conf</span>
+CONF=/etc/chrony.conf
+[ -f /etc/chrony/chrony.conf ] &amp;&amp; CONF=/etc/chrony/chrony.conf
+
+<span class="text-zinc-500"># Comment out existing pool/server lines (skip if already correct)</span>
+sudo sed -i '/^server 192\.168\.1\.1 iburst$/!{ s/^pool .*/#&amp;/; s/^server .*/#&amp;/; }' "$CONF"
+
+<span class="text-zinc-500"># Add the router line only if not already present (idempotent)</span>
+grep -qx 'server 192.168.1.1 iburst' "$CONF" || \
+  echo -e '\nserver 192.168.1.1 iburst' | sudo tee -a "$CONF"
+
+<span class="text-zinc-500"># Restart chrony and verify</span>
+sudo systemctl restart chronyd
+chronyc sources -a     <span class="text-zinc-500"># Should show 192.168.1.1 with ^*</span>
+chronyc tracking       <span class="text-zinc-500"># Ref ID should point to 192.168.1.1</span></code></pre>
+              <div class="mt-3 p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/50 text-xs text-zinc-600 dark:text-zinc-400" data-en="<strong>Tip:</strong> You don't need NTS for the LAN leg (client ↔ router). NTS secures the internet leg (router ↔ Cloudflare). Your router already verified time authenticity, so plain NTP over your local network is safe." data-es="<strong>Tip:</strong> No necesitás NTS para el tramo LAN (cliente ↔ router). NTS asegura el tramo de internet (router ↔ Cloudflare). Tu router ya verificó la autenticidad del tiempo, así que NTP plano por tu red local es seguro."><strong>Tip:</strong> You don't need NTS for the LAN leg (client ↔ router). NTS secures the internet leg (router ↔ Cloudflare). Your router already verified time authenticity, so plain NTP over your local network is safe.</div>
+              <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Important:</strong> <code>chronyc -h 192.168.1.1 tracking</code> will fail with &quot;506 Cannot talk to daemon&quot; — this is <em>normal</em>. That command uses chrony's admin protocol (port 323), which is restricted to localhost for security. NTP clients use port 123, which is what matters. Use <code>chronyc sources -a</code> on the client to verify sync." data-es="<strong>Importante:</strong> <code>chronyc -h 192.168.1.1 tracking</code> va a fallar con &quot;506 Cannot talk to daemon&quot; — esto es <em>normal</em>. Ese comando usa el protocolo de administración de chrony (puerto 323), que está restringido a localhost por seguridad. Los clientes NTP usan el puerto 123, que es lo que importa. Usá <code>chronyc sources -a</code> en el cliente para verificar la sincronización."><strong>Important:</strong> <code>chronyc -h 192.168.1.1 tracking</code> will fail with "506 Cannot talk to daemon" — this is <em>normal</em>. That command uses chrony's admin protocol (port 323), which is restricted to localhost for security. NTP clients use port 123, which is what matters. Use <code>chronyc sources -a</code> on the client to verify sync.</div>
+            </div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="Linux (systemd-timesyncd) — point timesyncd to router" data-es="Linux (systemd-timesyncd) — apuntar timesyncd al router">Linux (systemd-timesyncd) — point timesyncd to router</span>
+            </summary>
+            <div class="p-4 text-sm border-t border-zinc-200 dark:border-zinc-800">
+              <p class="text-zinc-500 dark:text-zinc-400 mb-3" data-en="Some distros (Ubuntu, Debian, Linux Mint) use systemd-timesyncd instead of chrony. Check which one you have and configure accordingly:" data-es="Algunas distros (Ubuntu, Debian, Linux Mint) usan systemd-timesyncd en vez de chrony. Verificá cuál tenés y configuralo:">Some distros (Ubuntu, Debian, Linux Mint) use systemd-timesyncd instead of chrony. Check which one you have and configure accordingly:</p>
+              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Check which NTP client is active</span>
+timedatectl timesync-status 2&gt;/dev/null &amp;&amp; echo "Using systemd-timesyncd" || echo "Not using timesyncd"
+
+<span class="text-zinc-500"># Configure timesyncd to use the router</span>
+sudo mkdir -p /etc/systemd/timesyncd.conf.d
+printf '[Time]\nNTP=192.168.1.1\nFallbackNTP=\n' | sudo tee /etc/systemd/timesyncd.conf.d/router.conf
+
+<span class="text-zinc-500"># Restart and verify</span>
+sudo systemctl restart systemd-timesyncd
+timedatectl timesync-status   <span class="text-zinc-500"># Server should show 192.168.1.1</span></code></pre>
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- ============== FIREWALL ============== -->
+      <section id="firewall" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Firewall Hardening" data-es="Hardening del firewall">Firewall Hardening</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6" data-en="OpenWrt's default config is already solid. These two tweaks improve security and performance with no risk." data-es="La configuración por defecto de OpenWrt ya es sólida. Estos dos ajustes mejoran la seguridad y el rendimiento sin riesgo.">OpenWrt's default config is already solid. These two tweaks improve security and performance with no risk.</p>
+
+        <div class="space-y-4">
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Drop invalid packets" data-es="Descartar paquetes inválidos">Drop invalid packets</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="Network → Firewall → General Settings → check <strong>&quot;Drop invalid packets&quot;</strong>. Drops malformed or out-of-sequence packets that are often part of port scans or fingerprinting attacks." data-es="Network → Firewall → General Settings → marcar <strong>&quot;Drop invalid packets&quot;</strong>. Descarta paquetes malformados o fuera de secuencia que suelen ser parte de escaneos de puertos o ataques de fingerprinting.">Network → Firewall → General Settings → check <strong>"Drop invalid packets"</strong>. Drops malformed or out-of-sequence packets that are often part of port scans or fingerprinting attacks.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Software flow offloading" data-es="Software flow offloading">Software flow offloading</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-2" data-en="Network → Firewall → Routing/NAT Offloading → <strong>&quot;Software flow offloading&quot;</strong>. Established connections bypass nftables rules for much better throughput on the MT7621." data-es="Network → Firewall → Routing/NAT Offloading → <strong>&quot;Software flow offloading&quot;</strong>. Las conexiones establecidas se saltean las reglas nftables para un throughput mucho mejor en el MT7621.">Network → Firewall → Routing/NAT Offloading → <strong>"Software flow offloading"</strong>. Established connections bypass nftables rules for much better throughput on the MT7621.</p>
+            <div class="mt-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>If you use SQM (QoS):</strong> do NOT enable hardware flow offloading — it bypasses traffic shaping. Software offloading only is fine with SQM." data-es="<strong>Si usás SQM (QoS):</strong> NO habilitar hardware flow offloading — bypasea el traffic shaping. Solo software offloading está bien con SQM."><strong>If you use SQM (QoS):</strong> do NOT enable hardware flow offloading — it bypasses traffic shaping. Software offloading only is fine with SQM.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== PERFORMANCE ============== -->
+      <section id="performance" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Performance" data-es="Rendimiento">Performance</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6" data-en="Tweaks to improve throughput, DNS response times, and reduce resource usage on the ER605's dual-core MT7621 with 128MB of RAM. All of these are reversible." data-es="Ajustes para mejorar el throughput, los tiempos de respuesta DNS y reducir el consumo de recursos en el MT7621 dual-core del ER605 con 128MB de RAM. Todos son reversibles.">Tweaks to improve throughput, DNS response times, and reduce resource usage on the ER605's dual-core MT7621 with 128MB of RAM. All of these are reversible.</p>
+
+        <div class="space-y-4">
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Enable Packet Steering" data-es="Habilitar Packet Steering">Enable Packet Steering</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="By default, all network interrupts land on a single CPU core. Packet Steering distributes packet processing across both cores of the MT7621, reducing bottlenecks under heavy traffic." data-es="Por defecto, todas las interrupciones de red caen en un solo core de CPU. Packet Steering distribuye el procesamiento de paquetes entre ambos cores del MT7621, reduciendo cuellos de botella bajo tráfico intenso.">By default, all network interrupts land on a single CPU core. Packet Steering distributes packet processing across both cores of the MT7621, reducing bottlenecks under heavy traffic.</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>uci set network.globals.packet_steering='1'
+uci commit network
+service network restart</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/15 text-xs text-blue-700 dark:text-blue-300" data-en="Also available in LuCI: Network → Interfaces → Global network options → Packet Steering." data-es="También disponible en LuCI: Network → Interfaces → Global network options → Packet Steering.">Also available in LuCI: Network → Interfaces → Global network options → Packet Steering.</div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Enable Software Flow Offloading" data-es="Habilitar Software Flow Offloading">Enable Software Flow Offloading</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Allows established connections to bypass the full firewall/NAT processing path, significantly improving throughput. Already recommended in the <a href='#post-install' class='underline underline-offset-2 text-emerald-600 dark:text-emerald-400'>Post-Install</a> section via LuCI — here's the UCI equivalent." data-es="Permite que las conexiones establecidas bypaseen el procesamiento completo de firewall/NAT, mejorando significativamente el throughput. Ya recomendado en la sección <a href='#post-install' class='underline underline-offset-2 text-emerald-600 dark:text-emerald-400'>Post-Instalación</a> vía LuCI — acá está el equivalente por UCI.">Allows established connections to bypass the full firewall/NAT processing path, significantly improving throughput. Already recommended in the <a href="#post-install" class="underline underline-offset-2 text-emerald-600 dark:text-emerald-400">Post-Install</a> section via LuCI — here's the UCI equivalent.</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>uci set firewall.@defaults[0].flow_offloading='1'
+uci commit firewall
+service firewall restart</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Note:</strong> Incompatible with SQM/QoS. Traffic statistics in LuCI may be less accurate since offloaded packets bypass the normal counters." data-es="<strong>Nota:</strong> Incompatible con SQM/QoS. Las estadísticas de tráfico en LuCI pueden ser menos precisas ya que los paquetes offloaded no pasan por los contadores normales."><strong>Note:</strong> Incompatible with SQM/QoS. Traffic statistics in LuCI may be less accurate since offloaded packets bypass the normal counters.</div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Increase dnsmasq DNS cache" data-es="Aumentar el cache DNS de dnsmasq">Increase dnsmasq DNS cache</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="The default cache holds only 150 entries. Increasing it to 1000 means repeated DNS queries resolve instantly from local cache instead of hitting dnscrypt-proxy again. The memory cost is negligible (~100KB)." data-es="El cache por defecto tiene solo 150 entradas. Aumentarlo a 1000 significa que las consultas DNS repetidas se resuelven instantáneamente desde el cache local en vez de volver a pasar por dnscrypt-proxy. El costo en memoria es despreciable (~100KB).">The default cache holds only 150 entries. Increasing it to 1000 means repeated DNS queries resolve instantly from local cache instead of hitting dnscrypt-proxy again. The memory cost is negligible (~100KB).</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>uci set dhcp.@dnsmasq[0].cachesize='1000'
+uci commit dhcp
+service dnsmasq restart</code></pre>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Disable IPv6 if your ISP doesn't provide it" data-es="Desactivar IPv6 si tu ISP no lo provee">Disable IPv6 if your ISP doesn't provide it</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="odhcpd handles DHCPv6 and Router Advertisements for IPv6. If your ISP doesn't give you IPv6 (most residential connections in Latin America don't), it's running for nothing — using RAM and CPU cycles with no benefit." data-es="odhcpd se encarga de DHCPv6 y Router Advertisements para IPv6. Si tu ISP no te da IPv6 (la mayoría de las conexiones residenciales en Latinoamérica no lo dan), está corriendo al pedo — usando RAM y ciclos de CPU sin beneficio.">odhcpd handles DHCPv6 and Router Advertisements for IPv6. If your ISP doesn't give you IPv6 (most residential connections in Latin America don't), it's running for nothing — using RAM and CPU cycles with no benefit.</p>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="First, check if you actually have IPv6:" data-es="Primero, verificá si realmente tenés IPv6:">First, check if you actually have IPv6:</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-3"><code>ip -6 addr show scope global</code></pre>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="If it returns nothing (no global IPv6 address), you can safely disable odhcpd:" data-es="Si no devuelve nada (no hay dirección IPv6 global), podés desactivar odhcpd tranquilo:">If it returns nothing (no global IPv6 address), you can safely disable odhcpd:</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>service odhcpd stop
+service odhcpd disable</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>To re-enable later:</strong> <code>service odhcpd enable && service odhcpd start</code>. This is completely reversible." data-es="<strong>Para re-habilitarlo después:</strong> <code>service odhcpd enable && service odhcpd start</code>. Esto es completamente reversible."><strong>To re-enable later:</strong> <code>service odhcpd enable && service odhcpd start</code>. This is completely reversible.</div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Reduce system log buffer" data-es="Reducir el buffer del log del sistema">Reduce system log buffer</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="By default, logd keeps a 64KB log buffer in RAM. Reducing it to 32KB saves memory while still keeping enough log history for basic debugging:" data-es="Por defecto, logd mantiene un buffer de log de 64KB en RAM. Reducirlo a 32KB ahorra memoria manteniendo suficiente historial de logs para depuración básica:">By default, logd keeps a 64KB log buffer in RAM. Reducing it to 32KB saves memory while still keeping enough log history for basic debugging:</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>uci set system.@system[0].log_size='32'
+uci commit system
+/etc/init.d/log restart</code></pre>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <h4 class="font-display font-bold mb-1" data-en="Check current RAM usage" data-es="Ver el uso actual de RAM">Check current RAM usage</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Monitor available memory at any time:" data-es="Monitoreá la memoria disponible en cualquier momento:">Monitor available memory at any time:</p>
+            <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>free -m</code></pre>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-3" data-en="With everything running (dnsmasq + blocklist + dnscrypt-proxy + chrony), expect around 50–60MB free. That's plenty for the ER605." data-es="Con todo corriendo (dnsmasq + blocklist + dnscrypt-proxy + chrony), esperá alrededor de 50–60MB libres. Eso es holgado para el ER605.">With everything running (dnsmasq + blocklist + dnscrypt-proxy + chrony), expect around 50–60MB free. That's plenty for the ER605.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== QUICK REFERENCE ============== -->
+      <section id="commands" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Quick Reference" data-es="Referencia rápida">Quick Reference</h2>
+        <div class="space-y-4">
+          <div class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 prose-table">
+            <table>
+              <thead>
+                <tr>
+                  <th data-en="Command" data-es="Comando">Command</th>
+                  <th data-en="What it does" data-es="Qué hace">What it does</th>
+                </tr>
+              </thead>
+              <tbody class="font-mono text-xs">
+                <tr><td>ssh root@192.168.1.1</td><td class="font-body" data-en="Connect to router" data-es="Conectarse al router">Connect to router</td></tr>
+                <tr><td>service &lt;name&gt; start/stop/restart</td><td class="font-body" data-en="Control a service" data-es="Controlar un servicio">Control a service</td></tr>
+                <tr><td>service &lt;name&gt; enable/disable</td><td class="font-body" data-en="Enable/disable on boot" data-es="Habilitar/deshabilitar en boot">Enable/disable on boot</td></tr>
+                <tr><td>logread -e &lt;service&gt;</td><td class="font-body" data-en="View logs for a service" data-es="Ver logs de un servicio">View logs for a service</td></tr>
+                <tr><td>netstat -tlnup</td><td class="font-body" data-en="Show listening ports" data-es="Ver puertos escuchando">Show listening ports</td></tr>
+                <tr><td>free -m</td><td class="font-body" data-en="RAM usage" data-es="Uso de RAM">RAM usage</td></tr>
+                <tr><td>df -h</td><td class="font-body" data-en="Disk / overlay space" data-es="Espacio en disco / overlay">Disk / overlay space</td></tr>
+                <tr><td>apk list --installed</td><td class="font-body" data-en="Installed packages" data-es="Paquetes instalados">Installed packages</td></tr>
+                <tr><td>uci show &lt;component&gt;</td><td class="font-body" data-en="View UCI config" data-es="Ver configuración UCI">View UCI config</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 prose-table">
+            <table>
+              <thead>
+                <tr>
+                  <th data-en="Active service" data-es="Servicio activo">Active service</th>
+                  <th data-en="Function" data-es="Función">Function</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+                <tr><td class="font-mono text-xs">update-blocklist.sh</td><td data-en="DNS blocklist via dnsmasq (Hagezi)" data-es="Blocklist DNS vía dnsmasq (Hagezi)">DNS blocklist via dnsmasq (Hagezi)</td></tr>
+                <tr><td class="font-mono text-xs">chronyd</td><td data-en="Time sync (NTP + NTS)" data-es="Sincronización de tiempo (NTP + NTS)">Time sync (NTP + NTS)</td></tr>
+                <tr><td class="font-mono text-xs">dnscrypt-proxy</td><td data-en="Encrypted DNS (DNSCrypt/DoH)" data-es="DNS cifrado (DNSCrypt/DoH)">Encrypted DNS (DNSCrypt/DoH)</td></tr>
+                <tr><td class="font-mono text-xs">dnsmasq</td><td data-en="Local DNS + DHCP" data-es="DNS local + DHCP">Local DNS + DHCP</td></tr>
+                <tr><td class="font-mono text-xs">dropbear</td><td data-en="SSH server" data-es="Servidor SSH">SSH server</td></tr>
+                <tr><td class="font-mono text-xs">firewall</td><td>nftables (fw4)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== POST-REBOOT ============== -->
+      <section id="post-reboot" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Post-Reboot Verification" data-es="Verificación tras reinicio">Post-Reboot Verification</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6" data-en="All configuration set via <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>uci commit</code> persists across reboots (stored in <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/config/</code> on flash). Services enabled with <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>service &lt;name&gt; enable</code> start automatically on boot. Run these commands after a reboot to confirm everything is working:" data-es="Toda la configuración hecha con <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>uci commit</code> persiste entre reinicios (guardada en <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/config/</code> en flash). Los servicios habilitados con <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>service &lt;name&gt; enable</code> arrancan automáticamente en el boot. Ejecutá estos comandos después de un reinicio para confirmar que todo funciona:">All configuration set via <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">uci commit</code> persists across reboots (stored in <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/etc/config/</code> on flash). Services enabled with <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">service &lt;name&gt; enable</code> start automatically on boot. Run these commands after a reboot to confirm everything is working:</p>
+
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># dnsmasq → dnscrypt-proxy forwarding</span>
+uci get dhcp.@dnsmasq[0].server       <span class="text-zinc-500"># → 127.0.0.1#5353</span>
+uci get dhcp.@dnsmasq[0].noresolv     <span class="text-zinc-500"># → 1</span>
+uci get dhcp.@dnsmasq[0].logqueries   <span class="text-zinc-500"># → 0</span>
+
+<span class="text-zinc-500"># dnscrypt-proxy listening</span>
+netstat -tlnup | grep 5353            <span class="text-zinc-500"># → dnscrypt-proxy on TCP+UDP</span>
+
+<span class="text-zinc-500"># Ad blocking active (blocklist loaded)</span>
+wc -l /tmp/dnsmasq.d/blocklist.conf   <span class="text-zinc-500"># → ~240k lines</span>
+
+<span class="text-zinc-500"># NTP with NTS + LAN server</span>
+chronyc sources -a                     <span class="text-zinc-500"># → time.cloudflare.com with ^*</span>
+chronyc -N authdata                    <span class="text-zinc-500"># → NTS mode, cookies > 0</span>
+chronyc serverstats                    <span class="text-zinc-500"># → NTP packets received > 0</span>
+
+<span class="text-zinc-500"># DNS resolves correctly</span>
+dig @127.0.0.1 -p 5353 example.com    <span class="text-zinc-500"># → NOERROR + IP address</span>
+nslookup ads.google.com               <span class="text-zinc-500"># → NXDOMAIN (blocked)</span>
+
+<span class="text-zinc-500"># Performance tweaks</span>
+uci get network.globals.packet_steering   <span class="text-zinc-500"># → 1</span>
+uci get firewall.@defaults[0].flow_offloading  <span class="text-zinc-500"># → 1</span>
+uci get dhcp.@dnsmasq[0].cachesize       <span class="text-zinc-500"># → 1000</span></code></pre>
+
+        <div class="mt-4 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 prose-table">
+          <table>
+            <thead>
+              <tr>
+                <th data-en="Check" data-es="Verificación">Check</th>
+                <th data-en="Expected result" data-es="Resultado esperado">Expected result</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm">
+              <tr>
+                <td class="font-mono text-xs">uci get dhcp.@dnsmasq[0].server</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">127.0.0.1#5353</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get dhcp.@dnsmasq[0].noresolv</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">1</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get dhcp.@dnsmasq[0].logqueries</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">0</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">netstat -tlnup | grep 5353</td>
+                <td data-en="dnscrypt-proxy on TCP + UDP" data-es="dnscrypt-proxy en TCP + UDP">dnscrypt-proxy on TCP + UDP</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">wc -l /tmp/dnsmasq.d/blocklist.conf</td>
+                <td data-en="~240k lines (blocklist loaded)" data-es="~240k líneas (blocklist cargada)">~240k lines (blocklist loaded)</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">chronyc sources -a</td>
+                <td data-en="time.cloudflare.com with ^*" data-es="time.cloudflare.com con ^*">time.cloudflare.com with ^*</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">chronyc -N authdata</td>
+                <td data-en="NTS mode, cookies > 0" data-es="Modo NTS, cookies > 0">NTS mode, cookies > 0</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">chronyc serverstats</td>
+                <td data-en="NTP packets received > 0 (LAN server)" data-es="NTP packets received > 0 (servidor LAN)">NTP packets received > 0 (LAN server)</td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">nslookup ads.google.com</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">NXDOMAIN</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get network.globals.packet_steering</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">1</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get firewall.@defaults[0].flow_offloading</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">1</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get dhcp.@dnsmasq[0].cachesize</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">1000</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============== TROUBLESHOOTING ============== -->
+      <section id="troubleshooting" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4">Troubleshooting</h2>
+        <div class="space-y-3">
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="SSH: Connection refused" data-es="SSH: Conexión rechazada">SSH: Connection refused</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="Verify Remote Assistance is enabled. Check your PC has an IP in the 192.168.0.x range. Try restarting the router and waiting 1 minute." data-es="Verificá que Remote Assistance esté habilitado. Verificá que tu PC tiene una IP en el rango 192.168.0.x. Intentá reiniciar el router y esperar 1 minuto.">Verify Remote Assistance is enabled. Check your PC has an IP in the 192.168.0.x range. Try restarting the router and waiting 1 minute.</div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span>SSH: "REMOTE HOST IDENTIFICATION HAS CHANGED"</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
+              <p class="mb-2" data-en="Expected after flashing — the SSH server changed. Remove the old key:" data-es="Esperado después del flasheo — el servidor SSH cambió. Borrá la clave vieja:">Expected after flashing — the SSH server changed. Remove the old key:</p>
+              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs"><code>ssh-keygen -R 192.168.0.1
+ssh-keygen -R 192.168.1.1</code></pre>
+            </div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span>SSH: "no matching host key / cipher / kex"</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
+              <p class="mb-2" data-en="Use the full command with legacy algorithm flags:" data-es="Usá el comando completo con las flags de algoritmos legacy:">Use the full command with legacy algorithm flags:</p>
+              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr root@192.168.1.1</code></pre>
+            </div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="Can't access 192.168.1.1 after reboot" data-es="No puedo acceder a 192.168.1.1 después del reinicio">Can't access 192.168.1.1 after reboot</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="This usually means dnsmasq crashed and DHCP is not running. Set a static IP to get in: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>sudo nmcli con mod &quot;Wired connection 1&quot; ipv4.method manual ipv4.addresses 192.168.1.50/24 ipv4.gateway 192.168.1.1</code>, then reconnect. SSH in and check: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>logread | grep dnsmasq</code>. Common causes: (1) <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp/dnsmasq.d</code> doesn't exist — verify the init script is enabled: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/init.d/mkdir-dnsmasq-confdir enable</code>. (2) Duplicate confdir entries — fix with: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>uci delete dhcp.@dnsmasq[0].confdir; uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'; uci commit dhcp</code>. Remember to switch your PC back to DHCP after." data-es="Esto generalmente significa que dnsmasq crasheó y el DHCP no está corriendo. Configurá una IP estática para poder entrar: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>sudo nmcli con mod &quot;Wired connection 1&quot; ipv4.method manual ipv4.addresses 192.168.1.50/24 ipv4.gateway 192.168.1.1</code>, y reconectá. Entrá por SSH y verificá: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>logread | grep dnsmasq</code>. Causas comunes: (1) <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/tmp/dnsmasq.d</code> no existe — verificá que el script init esté habilitado: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/init.d/mkdir-dnsmasq-confdir enable</code>. (2) Entradas duplicadas en confdir — arreglar con: <code class='px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>uci delete dhcp.@dnsmasq[0].confdir; uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'; uci commit dhcp</code>. Acordate de volver tu PC a DHCP después.">This usually means dnsmasq crashed and DHCP is not running. Set a static IP to get in: <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">sudo nmcli con mod "Wired connection 1" ipv4.method manual ipv4.addresses 192.168.1.50/24 ipv4.gateway 192.168.1.1</code>, then reconnect. SSH in and check: <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">logread | grep dnsmasq</code>. Common causes: (1) <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/tmp/dnsmasq.d</code> doesn't exist — verify the init script is enabled: <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/etc/init.d/mkdir-dnsmasq-confdir enable</code>. (2) Duplicate confdir entries — fix with: <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">uci delete dhcp.@dnsmasq[0].confdir; uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'; uci commit dhcp</code>. Remember to switch your PC back to DHCP after.</div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="dnscrypt-proxy: port 53 already in use" data-es="dnscrypt-proxy: puerto 53 ya en uso">dnscrypt-proxy: port 53 already in use</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="There are multiple active <code>listen_addresses</code> lines in the .toml, or the active one points to port 53 (used by dnsmasq). Ensure only one line exists pointing to <code>127.0.0.1:5353</code>." data-es="Hay múltiples líneas activas de <code>listen_addresses</code> en el .toml, o la que está activa apunta al puerto 53 (usado por dnsmasq). Asegurate de que solo haya una línea apuntando a <code>127.0.0.1:5353</code>.">There are multiple active <code>listen_addresses</code> lines in the .toml, or the active one points to port 53 (used by dnsmasq). Ensure only one line exists pointing to <code>127.0.0.1:5353</code>.</div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="Blocklist is empty or not loaded" data-es="La blocklist está vacía o no se cargó">Blocklist is empty or not loaded</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="Re-run the update script: <code>/usr/sbin/update-blocklist.sh</code>. Check that curl can reach the CDN: <code>curl -sI https://cdn.jsdelivr.net</code>. Verify the file exists: <code>ls -la /tmp/dnsmasq.d/blocklist.conf</code>." data-es="Volvé a ejecutar el script: <code>/usr/sbin/update-blocklist.sh</code>. Verificá que curl pueda alcanzar el CDN: <code>curl -sI https://cdn.jsdelivr.net</code>. Verificá que el archivo exista: <code>ls -la /tmp/dnsmasq.d/blocklist.conf</code>.">Re-run the update script: <code>/usr/sbin/update-blocklist.sh</code>. Check that curl can reach the CDN: <code>curl -sI https://cdn.jsdelivr.net</code>. Verify the file exists: <code>ls -la /tmp/dnsmasq.d/blocklist.conf</code>.</div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="DNS doesn't resolve anything" data-es="DNS no resuelve nada">DNS doesn't resolve anything</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="Remove the blocklist temporarily: <code>rm /tmp/dnsmasq.d/blocklist.conf && /etc/init.d/dnsmasq restart</code>. Check dnsmasq: <code>service dnsmasq status</code>. Test dnscrypt-proxy directly: <code>dig @127.0.0.1 -p 5353 example.com</code>. If that works but the network doesn't resolve, restart dnsmasq." data-es="Eliminá la blocklist temporalmente: <code>rm /tmp/dnsmasq.d/blocklist.conf && /etc/init.d/dnsmasq restart</code>. Verificá dnsmasq: <code>service dnsmasq status</code>. Probá dnscrypt-proxy directamente: <code>dig @127.0.0.1 -p 5353 example.com</code>. Si eso funciona pero la red no resuelve, reiniciá dnsmasq.">Remove the blocklist temporarily: <code>rm /tmp/dnsmasq.d/blocklist.conf && /etc/init.d/dnsmasq restart</code>. Check dnsmasq: <code>service dnsmasq status</code>. Test dnscrypt-proxy directly: <code>dig @127.0.0.1 -p 5353 example.com</code>. If that works but the network doesn't resolve, restart dnsmasq.</div>
+          </details>
+
+          <details class="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <summary class="px-4 py-3 bg-white dark:bg-zinc-900 text-sm font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span data-en="Credentials don't work after downgrade/rollback" data-es="Las credenciales no funcionan después de downgrade/rollback">Credentials don't work after downgrade/rollback</span>
+            </summary>
+            <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800" data-en="Do a hardware factory reset: hold the RESET button with a pin for 10 seconds. The router will ask you to create new credentials. Do not guess — you'll get locked out." data-es="Hacé un factory reset por hardware: mantené el botón RESET presionado con un alfiler por 10 segundos. El router te va a pedir crear nuevas credenciales. No intentes adivinar — te bloquea.">Do a hardware factory reset: hold the RESET button with a pin for 10 seconds. The router will ask you to create new credentials. Do not guess — you'll get locked out.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- ============== REVERT ============== -->
+      <section id="revert" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Revert to Stock Firmware" data-es="Volver al firmware de fábrica">Revert to Stock Firmware</h2>
+        <div class="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-sm text-red-600 dark:text-red-300/80 mb-4" data-en="<strong>The restore command depends on how your backup was made.</strong> Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md' class='underline underline-offset-2'>MTD backup documentation</a> before restoring." data-es="<strong>El comando de restauración depende de cómo se hizo tu backup.</strong> Usar el comando incorrecto (ubiformat vs mtd write) puede destruir la tabla de bloques malos de la NAND y brickear el router permanentemente. Consultá la <a href='https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md' class='underline underline-offset-2'>documentación del backup MTD</a> antes de restaurar."><strong>The restore command depends on how your backup was made.</strong> Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md" class="underline underline-offset-2">MTD backup documentation</a> before restoring.</div>
+
+        <h4 class="font-display font-bold mb-2" data-en="Rollback DNS changes" data-es="Revertir cambios de DNS">Rollback DNS changes</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>uci delete dhcp.@dnsmasq[0].server
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci delete dhcp.@dnsmasq[0].logqueries 2>/dev/null
+uci commit dhcp
+service dnsmasq restart</code></pre>
+
+        <h4 class="font-display font-bold mt-6 mb-2" data-en="Rollback NTP/NTS changes" data-es="Revertir cambios de NTP/NTS">Rollback NTP/NTS changes</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk del chrony-nts
+apk add chrony
+rm -f /etc/chrony/conf.d/ntp-server.conf
+uci delete chrony.@server[0]
+uci add chrony pool
+uci set chrony.@pool[-1].hostname='2.openwrt.pool.ntp.org'
+uci set chrony.@pool[-1].maxpoll='12'
+uci set chrony.@pool[-1].iburst='yes'
+uci commit chrony
+/etc/init.d/chronyd restart
+/etc/init.d/sysntpd enable
+/etc/init.d/sysntpd start</code></pre>
+      </section>
+
+      <!-- ============== USAGE GUIDE ============== -->
+      <section id="usage-guide" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Usage Guide" data-es="Guía de uso">Usage Guide</h2>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6" data-en="Common day-to-day tasks for managing your OpenWrt-powered ER605 v2 via the command line (SSH)." data-es="Tareas comunes del día a día para administrar tu ER605 v2 con OpenWrt desde la línea de comandos (SSH).">Common day-to-day tasks for managing your OpenWrt-powered ER605 v2 via the command line (SSH).</p>
+
+        <!-- Static IP / DHCP Static Leases -->
+        <h3 class="font-display text-lg font-bold mb-3" data-en="Assign a Static IP (DHCP Static Lease)" data-es="Asignar una IP estática (Lease estático DHCP)">Assign a Static IP (DHCP Static Lease)</h3>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3" data-en="Each <code class='px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded text-xs'>uci add dhcp host</code> creates a new &quot;host&quot; entry inside the DHCP configuration. Each host entry is a <strong>static lease</strong> — it binds a device's MAC address to a fixed IP so it always gets the same address." data-es="Cada <code class='px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded text-xs'>uci add dhcp host</code> crea una nueva entrada de tipo &quot;host&quot; dentro de la configuración de DHCP. Cada entrada host es un <strong>lease estático</strong> — asocia la MAC de un dispositivo con una IP fija para que siempre reciba la misma dirección.">Each <code class="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-800 rounded text-xs">uci add dhcp host</code> creates a new &quot;host&quot; entry inside the DHCP configuration. Each host entry is a <strong>static lease</strong> — it binds a device's MAC address to a fixed IP so it always gets the same address.</p>
+
+        <h4 class="font-display font-bold mb-2" data-en="Add a single static lease" data-es="Agregar un lease estático">Add a single static lease</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code># Replace the values with your device's info
+uci add dhcp host
+uci set dhcp.@host[-1].name='MyDevice'
+uci set dhcp.@host[-1].mac='AA:BB:CC:DD:EE:FF'
+uci set dhcp.@host[-1].ip='192.168.1.100'
+uci commit dhcp
+/etc/init.d/dnsmasq restart</code></pre>
+        <div class="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-300/80 mb-6" data-en="After assigning a static IP, <strong>restart or reconnect the target device</strong> so it picks up the new address from DHCP." data-es="Después de asignar una IP estática, <strong>reiniciá o reconectá el dispositivo objetivo</strong> para que tome la nueva dirección del DHCP.">After assigning a static IP, <strong>restart or reconnect the target device</strong> so it picks up the new address from DHCP.</div>
+
+        <h4 class="font-display font-bold mb-2" data-en="Example: multiple devices" data-es="Ejemplo: varios dispositivos">Example: multiple devices</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code># Access Point 1
+uci add dhcp host
+uci set dhcp.@host[-1].name='AP-Living-Room'
+uci set dhcp.@host[-1].mac='2C:3B:70:AA:11:22'
+uci set dhcp.@host[-1].ip='192.168.1.2'
+
+# Access Point 2
+uci add dhcp host
+uci set dhcp.@host[-1].name='AP-Office'
+uci set dhcp.@host[-1].mac='2C:3B:70:BB:33:44'
+uci set dhcp.@host[-1].ip='192.168.1.3'
+
+# NAS
+uci add dhcp host
+uci set dhcp.@host[-1].name='NAS'
+uci set dhcp.@host[-1].mac='00:11:32:CC:55:66'
+uci set dhcp.@host[-1].ip='192.168.1.10'
+
+# Apply all at once
+uci commit dhcp
+/etc/init.d/dnsmasq restart</code></pre>
+
+        <h4 class="font-display font-bold mb-2" data-en="List all static leases" data-es="Listar todos los leases estáticos">List all static leases</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code>uci show dhcp | grep host</code></pre>
+
+        <h4 class="font-display font-bold mb-2" data-en="Remove a static lease" data-es="Eliminar un lease estático">Remove a static lease</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code># First find the index of the host you want to remove
+uci show dhcp | grep host
+
+# Then delete it (replace [0] with the correct index)
+uci delete dhcp.@host[0]
+uci commit dhcp
+/etc/init.d/dnsmasq restart</code></pre>
+
+        <!-- View connected devices -->
+        <h3 class="font-display text-lg font-bold mt-8 mb-3" data-en="View Connected Devices" data-es="Ver dispositivos conectados">View Connected Devices</h3>
+        <h4 class="font-display font-bold mb-2" data-en="Active DHCP leases" data-es="Leases DHCP activos">Active DHCP leases</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code>cat /tmp/dhcp.leases</code></pre>
+
+        <h4 class="font-display font-bold mb-2" data-en="ARP table (all devices seen on the network)" data-es="Tabla ARP (todos los dispositivos vistos en la red)">ARP table (all devices seen on the network)</h4>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code>ip neigh</code></pre>
+
+        <!-- Port forwarding -->
+        <h3 class="font-display text-lg font-bold mt-8 mb-3" data-en="Port Forwarding" data-es="Redirección de puertos">Port Forwarding</h3>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code># Example: forward external port 8080 to internal 192.168.1.100:80
+uci add firewall redirect
+uci set firewall.@redirect[-1].name='Web-Server'
+uci set firewall.@redirect[-1].src='wan'
+uci set firewall.@redirect[-1].src_dport='8080'
+uci set firewall.@redirect[-1].dest='lan'
+uci set firewall.@redirect[-1].dest_ip='192.168.1.100'
+uci set firewall.@redirect[-1].dest_port='80'
+uci set firewall.@redirect[-1].proto='tcp'
+uci set firewall.@redirect[-1].target='DNAT'
+uci commit firewall
+/etc/init.d/firewall restart</code></pre>
+
+        <!-- Change LAN subnet -->
+        <h3 class="font-display text-lg font-bold mt-8 mb-3" data-en="Change LAN IP / Subnet" data-es="Cambiar IP / subred del LAN">Change LAN IP / Subnet</h3>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code>uci set network.lan.ipaddr='192.168.10.1'
+uci set network.lan.netmask='255.255.255.0'
+uci commit network
+/etc/init.d/network restart</code></pre>
+        <div class="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-sm text-red-600 dark:text-red-300/80 mb-4" data-en="Changing the LAN IP will <strong>disconnect your SSH session</strong>. Reconnect using the new IP address." data-es="Cambiar la IP del LAN <strong>desconectará tu sesión SSH</strong>. Reconectate usando la nueva dirección IP.">Changing the LAN IP will <strong>disconnect your SSH session</strong>. Reconnect using the new IP address.</div>
+
+        <!-- Reboot & uptime -->
+        <h3 class="font-display text-lg font-bold mt-8 mb-3" data-en="System Info &amp; Reboot" data-es="Info del sistema y reinicio">System Info &amp; Reboot</h3>
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto mb-4"><code># Check uptime
+uptime
+
+# Check OpenWrt version
+cat /etc/openwrt_release
+
+# Reboot the router
+reboot</code></pre>
+
+        <!-- WiFi (if applicable) -->
+        <h3 class="font-display text-lg font-bold mt-8 mb-3" data-en="Useful UCI Tips" data-es="Tips útiles de UCI">Useful UCI Tips</h3>
+        <div class="prose-table text-sm mb-4">
+          <table>
+            <thead>
+              <tr>
+                <th data-en="Command" data-es="Comando">Command</th>
+                <th data-en="Description" data-es="Descripción">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="text-xs">uci show &lt;config&gt;</code></td>
+                <td data-en="Show all settings for a config (dhcp, network, firewall…)" data-es="Muestra todos los ajustes de una config (dhcp, network, firewall…)">Show all settings for a config (dhcp, network, firewall…)</td>
+              </tr>
+              <tr>
+                <td><code class="text-xs">uci changes</code></td>
+                <td data-en="Show uncommitted changes" data-es="Muestra cambios sin aplicar">Show uncommitted changes</td>
+              </tr>
+              <tr>
+                <td><code class="text-xs">uci commit</code></td>
+                <td data-en="Apply all pending changes" data-es="Aplica todos los cambios pendientes">Apply all pending changes</td>
+              </tr>
+              <tr>
+                <td><code class="text-xs">uci revert &lt;config&gt;</code></td>
+                <td data-en="Discard uncommitted changes for a config" data-es="Descarta cambios no aplicados de una config">Discard uncommitted changes for a config</td>
+              </tr>
+              <tr>
+                <td><code class="text-xs">logread -f</code></td>
+                <td data-en="Follow the system log in real time" data-es="Seguir el log del sistema en tiempo real">Follow the system log in real time</td>
+              </tr>
+              <tr>
+                <td><code class="text-xs">df -h</code></td>
+                <td data-en="Check disk/flash storage usage" data-es="Ver uso de almacenamiento/flash">Check disk/flash storage usage</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============== SYSUPGRADE GUIDE ============== -->
+      <section id="sysupgrade" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Sysupgrade Guide" data-es="Guía de sysupgrade">Sysupgrade Guide</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-8" data-en="How to upgrade OpenWrt to a newer release on your already-flashed ER605 v2. This example covers upgrading to 25.12.2 (latest stable as of April 2026)." data-es="Cómo actualizar OpenWrt a una versión más reciente en tu ER605 v2 ya flasheado. Este ejemplo cubre la actualización a 25.12.2 (última versión estable a abril 2026).">How to upgrade OpenWrt to a newer release on your already-flashed ER605 v2. This example covers upgrading to 25.12.2 (latest stable as of April 2026).</p>
+
+        <!-- Post-upgrade system info -->
+        <div class="mb-8 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <h3 class="font-display text-sm font-bold mb-3 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider" data-en="Post-upgrade system info" data-es="Info del sistema post-upgrade">Post-upgrade system info</h3>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Hostname" data-es="Hostname">Hostname</div>
+            <div class="font-mono">OpenWrt</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Model" data-es="Modelo">Model</div>
+            <div class="font-mono">TP-Link ER605 v2</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Architecture" data-es="Arquitectura">Architecture</div>
+            <div class="font-mono">MediaTek MT7621 ver:1 eco:3</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Target Platform" data-es="Plataforma">Target Platform</div>
+            <div class="font-mono">ramips/mt7621</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Firmware Version" data-es="Versión de firmware">Firmware Version</div>
+            <div class="font-mono text-xs">OpenWrt 25.12.2 r32802-f505120278</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Kernel Version" data-es="Versión del kernel">Kernel Version</div>
+            <div class="font-mono">6.12.74</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Download -->
+        <div class="space-y-8">
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">1</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Download the sysupgrade image" data-es="Descargar la imagen de sysupgrade">Download the sysupgrade image</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Download the sysupgrade binary from the official OpenWrt downloads." data-es="Descargá el binario de sysupgrade desde las descargas oficiales de OpenWrt.">Download the sysupgrade binary from the official OpenWrt downloads.</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>cd /tmp
+curl -o openwrt-25.12.2-sysupgrade.bin \
+  https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <div class="mt-3 p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-xs prose-table">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300" data-en="File" data-es="Archivo">File</td>
+                      <td class="font-mono">openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300" data-en="Size" data-es="Tamaño">Size</td>
+                      <td class="font-mono">6.32 MiB</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300">MD5</td>
+                      <td class="font-mono break-all">c67df3d3afd4358edc566dbcc5d66dc7</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300">SHA256</td>
+                      <td class="font-mono break-all">20e99c590c5824033f8d34c6acff3738aca6ec42bf159c16530ae1680a8f08c0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Verify -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">2</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Verify the checksum" data-es="Verificar el checksum">Verify the checksum</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Always verify the SHA256 hash before flashing to ensure file integrity." data-es="Siempre verificá el hash SHA256 antes de flashear para asegurar la integridad del archivo.">Always verify the SHA256 hash before flashing to ensure file integrity.</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>sha256sum openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="Expected: <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>20e99c59...a8f08c0</code>" data-es="Esperado: <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>20e99c59...a8f08c0</code>">Expected: <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">20e99c59...a8f08c0</code></p>
+            </div>
+          </div>
+
+          <!-- Step 3: Backup -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">3</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Backup your current configuration" data-es="Hacer backup de tu configuración actual">Backup your current configuration</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Using <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> (or unchecking &quot;Keep settings&quot; in LuCI) wipes all settings. If you have a custom config (firewall rules, DNS, static leases, etc.), download a backup first." data-es="Usar <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> (o desmarcar &quot;Keep settings&quot; en LuCI) borra toda la configuración. Si tenés una config personalizada (reglas de firewall, DNS, leases estáticos, etc.), descargá un backup primero.">Using <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-n</code> (or unchecking "Keep settings" in LuCI) wipes all settings. If you have a custom config (firewall rules, DNS, static leases, etc.), download a backup first.</p>
+              <p class="text-sm text-zinc-600 dark:text-zinc-400" data-en="In LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong>" data-es="En LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong>">In LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong></p>
+            </div>
+          </div>
+
+          <!-- Step 4: Flash via LuCI -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">4</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Flash via LuCI (web interface)" data-es="Flashear via LuCI (interfaz web)">Flash via LuCI (web interface)</h4>
+              <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
+                <li data-en="Go to <strong>System → Backup / Flash Firmware → Flash new firmware image</strong>" data-es="Ir a <strong>System → Backup / Flash Firmware → Flash new firmware image</strong>">Go to <strong>System → Backup / Flash Firmware → Flash new firmware image</strong></li>
+                <li data-en="Select <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> and click <strong>Upload</strong>" data-es="Seleccioná <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> y hacé click en <strong>Upload</strong>">Select <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> and click <strong>Upload</strong></li>
+                <li data-en="Verify the checksums shown match the values above (MD5 &amp; SHA256)" data-es="Verificá que los checksums mostrados coincidan con los valores de arriba (MD5 y SHA256)">Verify the checksums shown match the values above (MD5 &amp; SHA256)</li>
+                <li data-en="<strong>Uncheck</strong> &quot;Keep settings and retain the current configuration&quot;" data-es="<strong>Desmarcá</strong> &quot;Keep settings and retain the current configuration&quot;"><strong>Uncheck</strong> "Keep settings and retain the current configuration"</li>
+                <li data-en="Click <strong>Continue</strong> and wait several minutes — do NOT power off the router" data-es="Hacé click en <strong>Continue</strong> y esperá varios minutos — NO apagues el router">Click <strong>Continue</strong> and wait several minutes — do NOT power off the router</li>
+              </ol>
+              <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If you see &quot;Image check failed&quot; in red, make sure &quot;Keep settings&quot; is unchecked. Do NOT use &quot;Force upgrade&quot;." data-es="Si ves &quot;Image check failed&quot; en rojo, asegurate de que &quot;Keep settings&quot; esté desmarcado. NO uses &quot;Force upgrade&quot;.">If you see "Image check failed" in red, make sure "Keep settings" is unchecked. Do NOT use "Force upgrade".</div>
+            </div>
+          </div>
+
+          <!-- Step 4 alt: Flash via SSH -->
+          <div class="flex gap-4">
+            <div class="step-number bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">alt</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Alternative: flash via SSH" data-es="Alternativa: flashear via SSH">Alternative: flash via SSH</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="If you prefer the command line, transfer the file to the router and run sysupgrade:" data-es="Si preferís la línea de comandos, transferí el archivo al router y ejecutá sysupgrade:">If you prefer the command line, transfer the file to the router and run sysupgrade:</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># From your PC — transfer the image to the router:</span>
+scp openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin root@192.168.1.1:/tmp/
+
+<span class="text-zinc-500"># On the router via SSH:</span>
+cd /tmp
+sysupgrade -n -v openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="The <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> flag means &quot;do not keep settings&quot; (clean install). <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-v</code> enables verbose output." data-es="El flag <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> significa &quot;no mantener configuración&quot; (instalación limpia). <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-v</code> habilita la salida detallada.">The <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-n</code> flag means "do not keep settings" (clean install). <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-v</code> enables verbose output.</p>
+            </div>
+          </div>
+
+          <!-- Step 5: Post-upgrade -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">5</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Post-upgrade: reconfigure" data-es="Post-upgrade: reconfigurar">Post-upgrade: reconfigure</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="After reboot, the router is at <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>192.168.1.1</code> with default settings (root, no password). You need to reconfigure everything: root password, firewall, DNS, DHCP, etc." data-es="Después del reinicio, el router estará en <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>192.168.1.1</code> con configuración por defecto (root, sin contraseña). Tenés que reconfigurar todo: contraseña de root, firewall, DNS, DHCP, etc.">After reboot, the router is at <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">192.168.1.1</code> with default settings (root, no password). You need to reconfigure everything: root password, firewall, DNS, DHCP, etc.</p>
+            </div>
+          </div>
+
+          <!-- Step 6: Disable auto firmware check -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">6</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Disable automatic firmware upgrade check" data-es="Deshabilitar chequeo automático de firmware">Disable automatic firmware upgrade check</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="By default, LuCI checks for firmware upgrades on login. You can disable this to avoid unnecessary external requests:" data-es="Por defecto, LuCI chequea actualizaciones de firmware al iniciar sesión. Podés deshabilitar esto para evitar peticiones externas innecesarias:">By default, LuCI checks for firmware upgrades on login. You can disable this to avoid unnecessary external requests:</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>uci set attendedsysupgrade.client.login_check_for_upgrades='0'
+uci commit attendedsysupgrade</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="This prevents the attended sysupgrade client from calling home every time you open LuCI." data-es="Esto evita que el cliente de attended sysupgrade haga una petición cada vez que abrís LuCI.">This prevents the attended sysupgrade client from calling home every time you open LuCI.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============== LINKS ============== -->
+      <section class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-4" data-en="Links &amp; Resources" data-es="Links y recursos">Links &amp; Resources</h2>
+        <div class="grid gap-2 text-sm">
+          <a href="https://github.com/chill1Penguin/er605v2_openwrt_install" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+            <span data-en="chill1Penguin's original method" data-es="Método original de chill1Penguin">chill1Penguin's original method</span>
+            <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+          <a href="https://firmware-selector.openwrt.org/?version=25.12.2&target=ramips/mt7621&id=tplink_er605-v2" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+            <span data-en="OpenWrt Firmware Selector (ER605 v2)" data-es="Selector de firmware OpenWrt (ER605 v2)">OpenWrt Firmware Selector (ER605 v2)</span>
+            <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+          <a href="https://forum.openwrt.org/t/looking-for-info-and-possibility-of-future-support-of-tp-link-omada-er605-v2-router/91868" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+            <span data-en="OpenWrt Forum thread" data-es="Hilo del foro OpenWrt">OpenWrt Forum thread</span>
+            <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+          <a href="https://www.diyhobi.com/flash-openwrt-on-tp-link-er605-v2/" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+            <span data-en="Alternative guide (with screenshots)" data-es="Guía alternativa (con capturas)">Alternative guide (with screenshots)</span>
+            <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+          <a href="https://github.com/DNSCrypt/dnscrypt-proxy" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+            <span>dnscrypt-proxy (ISC license)</span>
+            <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="pt-8 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-400 dark:text-zinc-600 leading-relaxed">
+        <p data-en="Based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install' class='underline underline-offset-2 hover:text-zinc-500'>chill1Penguin/er605v2_openwrt_install</a>. Licensed under <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html' class='underline underline-offset-2 hover:text-zinc-500'>GPL-2.0</a>." data-es="Basado en <a href='https://github.com/chill1Penguin/er605v2_openwrt_install' class='underline underline-offset-2 hover:text-zinc-500'>chill1Penguin/er605v2_openwrt_install</a>. Licenciado bajo <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html' class='underline underline-offset-2 hover:text-zinc-500'>GPL-2.0</a>.">Based on <a href="https://github.com/chill1Penguin/er605v2_openwrt_install" class="underline underline-offset-2 hover:text-zinc-500">chill1Penguin/er605v2_openwrt_install</a>. Licensed under <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" class="underline underline-offset-2 hover:text-zinc-500">GPL-2.0</a>.</p>
+        <p class="mt-2" data-en="All password generation happens locally in your browser using MD5 hashing. No data is transmitted." data-es="Toda la generación de contraseñas ocurre localmente en tu navegador usando hashing MD5. Ningún dato se transmite.">All password generation happens locally in your browser using MD5 hashing. No data is transmitted.</p>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ===== LANGUAGE TOGGLE =====
+let currentLang = localStorage.getItem('er605-lang') || 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('er605-lang', lang);
+  document.documentElement.lang = lang;
+  document.getElementById('langFlag').textContent = lang === 'en' ? '🇬🇧' : '🇪🇸';
+  document.getElementById('langLabel').textContent = lang === 'en' ? 'EN' : 'ES';
+
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const text = el.getAttribute('data-' + lang);
+    if (text) el.innerHTML = text;
+  });
+}
+
+function toggleLang() {
+  setLang(currentLang === 'en' ? 'es' : 'en');
+}
+
+// ===== DARK MODE (follows system) =====
+function applyDark(isDark) {
+  document.documentElement.classList.toggle('dark', isDark);
+  document.body.classList.toggle('dark', isDark);
+  document.body.classList.toggle('light', !isDark);
+}
+
+(function() {
+  applyDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    applyDark(e.matches);
+  });
+})();
+
+// ===== PASSWORD GENERATOR =====
+function normalizeMac(input) {
+  const hex = input.replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+  if (hex.length !== 12) return null;
+  return hex.match(/.{2}/g).join(':');
+}
+
+function generatePasswords() {
+  const raw = document.getElementById('macAddr').value.trim();
+  const username = document.getElementById('uname').value.trim();
+  const mac = normalizeMac(raw);
+  const macInput = document.getElementById('macAddr');
+  const macErr = document.getElementById('macErr');
+  const results = document.getElementById('pwResults');
+
+  if (raw.length > 0 && !mac) {
+    macInput.classList.add('border-red-500');
+    macErr.classList.remove('hidden');
+    results.classList.add('hidden');
+    return;
+  }
+  macInput.classList.remove('border-red-500');
+  macErr.classList.add('hidden');
+
+  if (!mac || !raw.length) {
+    results.classList.add('hidden');
+    return;
+  }
+
+  results.classList.remove('hidden');
+  document.getElementById('pwRoot').textContent = (username.length > 0) ? md5(mac + username).slice(0, 16) : '—';
+  document.getElementById('pwCli212').textContent = md5(mac + 'admin').slice(0, 16);
+  document.getElementById('pwCli222').textContent = md5(mac + 'admin' + mac + 'admin').slice(0, 16);
+}
+
+function copyText(id, btn) {
+  const text = document.getElementById(id).textContent;
+  if (text === '—') return;
+  navigator.clipboard.writeText(text).then(() => {
+    const label = btn.querySelector('.cp-label');
+    label.textContent = currentLang === 'es' ? 'Copiado!' : 'Copied!';
+    setTimeout(() => { label.textContent = 'Copy'; }, 1500);
+  });
+}
+
+// ===== SIDEBAR ACTIVE STATE =====
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('#sideNav a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -80% 0px' });
+
+sections.forEach(section => observer.observe(section));
+
+// ===== COPY CODE BLOCKS =====
+document.querySelectorAll('pre code').forEach(block => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-code text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 cursor-pointer';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(block.textContent).then(() => {
+      btn.textContent = currentLang === 'es' ? 'Copiado!' : 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+  });
+  block.parentElement.appendChild(btn);
+});
+
+// ===== INIT LANGUAGE =====
+setLang(currentLang);
+</script>
+</body>
+</html>
