@@ -207,7 +207,7 @@ if [ -f "$TOML" ]; then
 
 # --- er605-setup START ---
 listen_addresses = ['127.0.0.1:5353']
-server_names = ['quad9-dnscrypt-ip4-filter-ecs-pri']
+server_names = ['quad9-doh-ip4-filter-ecs-pri']
 require_nofilter = false
 cert_ignore_timestamp = true
 tls_cipher_suite = [52392, 49199]
@@ -225,7 +225,7 @@ DNSEOF
     ' "$TOML" > "${TOML}.tmp" && mv "${TOML}.tmp" "$TOML"
     rm -f /tmp/er605-dns-block
 
-    ok "dnscrypt-proxy2 configured (Quad9, port 5353)"
+    ok "dnscrypt-proxy2 configured (Quad9 DoH, port 5353)"
 else
     err "$TOML not found — dnscrypt-proxy2 may not have installed correctly"
     exit 1
@@ -643,7 +643,7 @@ fi
 section "Setup complete"
 
 printf "${GREEN}${BOLD}Your ER605 v2 is configured with:${NC}\n\n"
-printf "  - Encrypted DNS     → Quad9 via dnscrypt-proxy (port 5353)\n"
+printf "  - Encrypted DNS     → Quad9 DoH via dnscrypt-proxy (port 5353)\n"
 printf "  - Ad blocking       → Hagezi Pro++ (~240k domains)\n"
 printf "  - NTP + NTS         → Cloudflare (time.cloudflare.com)\n"
 printf "  - Firewall          → Drop invalid + software flow offloading\n"

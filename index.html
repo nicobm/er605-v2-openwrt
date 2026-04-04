@@ -718,8 +718,8 @@ apk add dnscrypt-proxy2</code></pre>
             <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Listen on port 5353 (not 53, that's dnsmasq)</span>
 listen_addresses = ['127.0.0.1:5353']
 
-<span class="text-zinc-500"># Quad9 with DNSSEC + malware filter + ECS</span>
-server_names = ['quad9-dnscrypt-ip4-filter-ecs-pri']
+<span class="text-zinc-500"># Quad9 DoH with DNSSEC + malware filter + ECS</span>
+server_names = ['quad9-doh-ip4-filter-ecs-pri']
 
 <span class="text-zinc-500"># Don't require nofilter — we WANT Quad9's malware filtering</span>
 require_nofilter = false
