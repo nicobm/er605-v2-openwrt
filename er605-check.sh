@@ -376,6 +376,7 @@ if [ -f "$BLOCKLIST_FILE" ]; then
     BL_LINES=$(wc -l < "$BLOCKLIST_FILE" 2>/dev/null)
     if [ -n "$BL_LINES" ] && [ "$BL_LINES" -gt 1000 ] 2>/dev/null; then
         check ok "Blocklist loaded: ~${BL_LINES} domains in $BLOCKLIST_FILE"
+        check ok "Blocklist lives in RAM (/tmp) — re-downloaded on boot via hotplug + cron"
     elif [ -n "$BL_LINES" ] && [ "$BL_LINES" -gt 0 ] 2>/dev/null; then
         check warn "Blocklist has only $BL_LINES lines (expected ~240k for Hagezi Pro++)"
     else
