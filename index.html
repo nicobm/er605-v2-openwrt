@@ -298,16 +298,13 @@ cd ~/er605_flash
 curl -o er605v2_write_initramfs.sh https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/er605v2_write_initramfs.sh
 curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/openwrt-initramfs-compact.bin</code></pre>
 
-                <p class="text-sm font-semibold mt-4 mb-2" data-en="1c. Download sysupgrade images:" data-es="1c. Descargar imágenes de sysupgrade:">1c. Download sysupgrade images:</p>
-                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># Sysupgrade 23.05.0 (required as first sysupgrade):</span>
-curl -o openwrt-23.05.0-sysupgrade.bin https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7621/openwrt-23.05.0-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin
-
-<span class="text-zinc-500"># Sysupgrade 25.12.2 (latest stable):</span>
+                <p class="text-sm font-semibold mt-4 mb-2" data-en="1c. Download sysupgrade image:" data-es="1c. Descargar imagen de sysupgrade:">1c. Download sysupgrade image:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># Sysupgrade 25.12.2 (latest stable):</span>
 curl -o openwrt-25.12.2-sysupgrade.bin https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
 
                 <p class="text-sm font-semibold mt-4 mb-2" data-en="1d. Verify you have everything:" data-es="1d. Verificar que tenés todo:">1d. Verify you have everything:</p>
                 <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ls -la ~/er605_flash/</code></pre>
-                <p class="text-sm text-zinc-500 mt-2" data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and both sysupgrade .bin files." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y ambos archivos .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and both sysupgrade .bin files.</p>
+                <p class="text-sm text-zinc-500 mt-2" data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y el archivo .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file.</p>
               </div>
             </div>
 
@@ -640,23 +637,12 @@ while ! ping -c1 -W1 192.168.1.1 &>/dev/null; do echo "Waiting..."; sleep 2; don
             <div class="flex gap-4">
               <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">13</div>
               <div class="flex-1 min-w-0">
-                <h4 class="font-display font-bold mb-2" data-en="Adjust UBI layout &amp; flash sysupgrade 23.05.0" data-es="Ajustar UBI layout y flashear sysupgrade 23.05.0">Adjust UBI layout &amp; flash sysupgrade 23.05.0</h4>
+                <h4 class="font-display font-bold mb-2" data-en="Adjust UBI layout &amp; flash sysupgrade 25.12.2" data-es="Ajustar UBI layout y flashear sysupgrade 25.12.2">Adjust UBI layout &amp; flash sysupgrade 25.12.2</h4>
                 <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
                   <li data-en="Click <strong>&quot;Adjust UBI Layout&quot;</strong> if it says &quot;NOT ADJUSTED&quot;" data-es="Hacé click en <strong>&quot;Adjust UBI Layout&quot;</strong> si dice &quot;NOT ADJUSTED&quot;">Click <strong>"Adjust UBI Layout"</strong> if it says "NOT ADJUSTED"</li>
-                  <li data-en="Upload the <strong>23.05.0</strong> sysupgrade image and click <strong>Flash</strong>" data-es="Subí la imagen sysupgrade <strong>23.05.0</strong> y hacé click en <strong>Flash</strong>">Upload the <strong>23.05.0</strong> sysupgrade image and click <strong>Flash</strong></li>
+                  <li data-en="Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck &quot;Keep settings&quot;</strong>, and click <strong>Flash</strong>" data-es="Subí la imagen sysupgrade <strong>25.12.2</strong>, <strong>desmarcá &quot;Keep settings&quot;</strong>, y hacé click en <strong>Flash</strong>">Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck "Keep settings"</strong>, and click <strong>Flash</strong></li>
+                  <li data-en="Wait several minutes — do NOT power off the router" data-es="Esperá varios minutos — NO apagues el router">Wait several minutes — do NOT power off the router</li>
                   <li data-en="After reboot, access <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>." data-es="Después del reinicio, accedé a <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → deberías ver <strong>LuCI</strong>. Login: <strong>root</strong>, contraseña: <em>vacía</em>.">After reboot, access <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>.</li>
-                </ol>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">14</div>
-              <div class="flex-1 min-w-0">
-                <h4 class="font-display font-bold mb-2" data-en="Upgrade to 25.12.2" data-es="Actualizar a 25.12.2">Upgrade to 25.12.2</h4>
-                <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
-                  <li data-en="Go to <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image" data-es="Ir a <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image">Go to <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image</li>
-                  <li data-en="Upload the 25.12.2 image, <strong>uncheck &quot;Keep settings&quot;</strong> (major version jump)" data-es="Subí la imagen 25.12.2, <strong>desmarcá &quot;Keep settings&quot;</strong> (salto de versión mayor)">Upload the 25.12.2 image, <strong>uncheck "Keep settings"</strong> (major version jump)</li>
-                  <li data-en="Click <strong>Continue</strong> and wait several minutes" data-es="Hacé click en <strong>Continue</strong> y esperá varios minutos">Click <strong>Continue</strong> and wait several minutes</li>
                 </ol>
                 <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es="Si ves &quot;Image check failed&quot; en rojo, es porque &quot;Keep settings&quot; está marcado. Desmarcalo y el error desaparece. NO uses &quot;Force upgrade&quot;.">If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</div>
               </div>
