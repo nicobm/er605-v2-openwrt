@@ -62,19 +62,39 @@ info "Bootstrapping temporary DNS for package downloads..."
 NEED_BOOTSTRAP="no"
 if ! nslookup downloads.openwrt.org 127.0.0.1 >/dev/null 2>&1; then
     NEED_BOOTSTRAP="yes"
-    ORIG_NORESOLV=$(uci -q get dhcp.@dnsmasq[0].noresolv 2>/dev/null)
-    ORIG_SERVER=$(uci -q get dhcp.@dnsmasq[0].server 2>/dev/null)
     uci set dhcp.@dnsmasq[0].noresolv='0'
     uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
     uci add_list dhcp.@dnsmasq[0].server='9.9.9.9'
     uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
     uci commit dhcp
-    service dnsmasq restart
-    sleep 1
-    if nslookup downloads.openwrt.org 127.0.0.1 >/dev/null 2>&1; then
+    service dnsmasq restart >/dev/null 2>&1
+
+    # Wait and retry — dnsmasq may take a few seconds after restart
+    DNS_OK="no"
+    for i in 1 2 3 4 5; do
+        sleep 2
+        if nslookup downloads.openwrt.org 127.0.0.1 >/dev/null 2>&1; then
+            DNS_OK="yes"
+            break
+        fi
+    done
+
+    if [ "$DNS_OK" = "yes" ]; then
         ok "Temporary DNS active (plain 9.9.9.9 + 1.1.1.1 — will switch to encrypted later)"
     else
-        warn "DNS still not resolving — package downloads may fail"
+        # Fallback: write resolv.conf directly so wget/curl can work even
+        # if dnsmasq forwarding isn't cooperating yet
+        warn "dnsmasq forwarding not working yet — using direct resolv.conf fallback"
+        echo "nameserver 9.9.9.9" > /tmp/resolv.conf.d/resolv.conf.auto 2>/dev/null || \
+        echo "nameserver 9.9.9.9" > /tmp/resolv.conf.auto 2>/dev/null || true
+        sleep 1
+        if nslookup downloads.openwrt.org >/dev/null 2>&1; then
+            ok "DNS working via resolv.conf fallback"
+        else
+            err "DNS still not resolving — package downloads will likely fail"
+            err "Check your WAN connection and try again"
+            exit 1
+        fi
     fi
 else
     ok "DNS already working"
@@ -114,6 +134,13 @@ fi
 # --- 1. Install packages ------------------------------------------------------
 
 section "1/6 — Installing packages"
+
+# Final DNS sanity check before attempting downloads
+if ! nslookup downloads.openwrt.org >/dev/null 2>&1; then
+    err "DNS is not working — cannot download packages"
+    err "Check your WAN connection and try again"
+    exit 1
+fi
 
 info "Updating package lists..."
 apk update
@@ -180,36 +207,42 @@ else
     exit 1
 fi
 
-# Redirect dnsmasq to dnscrypt-proxy (idempotent: clear then set)
-info "Redirecting dnsmasq to dnscrypt-proxy..."
-uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
-uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
-uci set dhcp.@dnsmasq[0].noresolv='1'
-uci set dhcp.@dnsmasq[0].logqueries='0'
-uci commit dhcp
-ok "dnsmasq forwarding to 127.0.0.1#5353"
-
-# Enable and start dnscrypt-proxy
+# Enable and start dnscrypt-proxy FIRST (while temporary DNS is still active
+# so it can download the resolver list)
 /etc/init.d/dnscrypt-proxy enable
 /etc/init.d/dnscrypt-proxy stop  2>/dev/null || true
 /etc/init.d/dnscrypt-proxy start 2>/dev/null || true
 
-# Wait for dnscrypt-proxy to bind to port 5353
-info "Waiting for dnscrypt-proxy to start (up to 15s)..."
+# Wait for dnscrypt-proxy to bind to port 5353 (needs to fetch resolver list,
+# which can take 30+ seconds on first run)
+info "Waiting for dnscrypt-proxy to start (up to 45s)..."
+DNSCRYPT_READY="no"
 RETRIES=0
-while [ $RETRIES -lt 15 ]; do
+while [ $RETRIES -lt 45 ]; do
     if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+        DNSCRYPT_READY="yes"
         break
     fi
     sleep 1
     RETRIES=$((RETRIES + 1))
 done
 
-if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+if [ "$DNSCRYPT_READY" = "yes" ]; then
     ok "dnscrypt-proxy started and listening on port 5353"
 else
-    warn "dnscrypt-proxy enabled but not yet listening on 5353 (may need more time to fetch resolvers)"
+    warn "dnscrypt-proxy not yet listening (may need more time to fetch resolvers)"
+    warn "Setup will continue — dnscrypt-proxy should start within ~60s"
 fi
+
+# NOW redirect dnsmasq to dnscrypt-proxy (only after it's running or at least starting)
+info "Redirecting dnsmasq to dnscrypt-proxy..."
+uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci set dhcp.@dnsmasq[0].logqueries='0'
+uci commit dhcp
+service dnsmasq restart >/dev/null 2>&1
+ok "dnsmasq forwarding to 127.0.0.1#5353"
 
 # --- 3. Ad blocking (dnsmasq + Hagezi Pro++) -----------------------------------
 
@@ -242,7 +275,7 @@ cat > /usr/sbin/update-blocklist.sh << 'EOF'
 #!/bin/sh
 curl -s -o /tmp/dnsmasq.d/blocklist.conf \
   https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/dnsmasq/pro.plus.txt && \
-/etc/init.d/dnsmasq restart
+/etc/init.d/dnsmasq restart >/dev/null 2>&1
 EOF
 chmod +x /usr/sbin/update-blocklist.sh
 ok "Update script created at /usr/sbin/update-blocklist.sh"
@@ -335,7 +368,7 @@ ok "Drop invalid packets enabled"
 info "Enabling software flow offloading..."
 uci set firewall.@defaults[0].flow_offloading='1'
 uci commit firewall
-service firewall restart
+service firewall restart >/dev/null 2>&1
 ok "Software flow offloading enabled"
 
 # --- 6. Performance tweaks -----------------------------------------------------
@@ -354,7 +387,7 @@ ok "dnsmasq cache set to 1000"
 
 # Restart dnsmasq once (picks up all changes: forwarding, confdir, cache)
 info "Restarting dnsmasq with all new settings..."
-service dnsmasq restart
+service dnsmasq restart >/dev/null 2>&1
 ok "dnsmasq restarted"
 
 # Disable odhcpd if no IPv6
