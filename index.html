@@ -686,10 +686,10 @@ uci commit system</code></pre>
             <div>
               <span data-en="<strong>Install useful packages:</strong>" data-es="<strong>Instalar paquetes útiles:</strong>"><strong>Install useful packages:</strong></span>
               <pre class="mt-2 p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh root@192.168.1.1
-opkg update
-opkg install luci-app-sqm           <span class="text-zinc-500"># Smart QoS</span>
-opkg install luci-proto-wireguard   <span class="text-zinc-500"># Fast VPN</span>
-opkg install luci-app-statistics collectd-mod-cpu collectd-mod-memory <span class="text-zinc-500"># Stats</span></code></pre>
+apk update
+apk add luci-app-sqm           <span class="text-zinc-500"># Smart QoS</span>
+apk add luci-proto-wireguard   <span class="text-zinc-500"># Fast VPN</span>
+apk add luci-app-statistics collectd-mod-cpu collectd-mod-memory <span class="text-zinc-500"># Stats</span></code></pre>
             </div>
           </div>
         </div>
@@ -708,8 +708,8 @@ opkg install luci-app-statistics collectd-mod-cpu collectd-mod-memory <span clas
         <div class="space-y-6">
           <div>
             <h4 class="font-display font-bold mb-2" data-en="Install" data-es="Instalar">Install</h4>
-            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>opkg update
-opkg install dnscrypt-proxy2</code></pre>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code>apk update
+apk add dnscrypt-proxy2</code></pre>
           </div>
 
           <div>
@@ -757,7 +757,7 @@ service dnsmasq restart</code></pre>
             <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>service dnscrypt-proxy start
 service dnscrypt-proxy enable
 netstat -tlnup | grep 5353       <span class="text-zinc-500"># Should show dnscrypt-proxy</span>
-opkg install bind-dig
+apk add bind-dig
 dig @127.0.0.1 -p 5353 example.com  <span class="text-zinc-500"># Should resolve</span></code></pre>
             <p class="text-sm text-zinc-500 mt-3" data-en="From a device on your network, visit <a href='https://dnsleaktest.com' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>dnsleaktest.com</a> → Extended test. You should see Quad9 servers, not your ISP." data-es="Desde un dispositivo de tu red, visitá <a href='https://dnsleaktest.com' class='text-emerald-600 dark:text-emerald-400 underline underline-offset-2'>dnsleaktest.com</a> → Extended test. Deberías ver servidores de Quad9, no los de tu ISP.">From a device on your network, visit <a href="https://dnsleaktest.com" class="text-emerald-600 dark:text-emerald-400 underline underline-offset-2">dnsleaktest.com</a> → Extended test. You should see Quad9 servers, not your ISP.</p>
           </div>
@@ -904,9 +904,9 @@ uci commit dhcp
         <div class="space-y-6">
           <div>
             <h4 class="font-display font-bold mb-2" data-en="Install" data-es="Instalar">Install</h4>
-            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>opkg update
-opkg remove chrony
-opkg install chrony-nts ca-certificates
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk update
+apk del chrony
+apk add chrony-nts ca-certificates
 rm -f /etc/config/chrony-opkg</code></pre>
           </div>
 
@@ -1098,7 +1098,7 @@ uci commit system
                 <tr><td>netstat -tlnup</td><td class="font-body" data-en="Show listening ports" data-es="Ver puertos escuchando">Show listening ports</td></tr>
                 <tr><td>free -m</td><td class="font-body" data-en="RAM usage" data-es="Uso de RAM">RAM usage</td></tr>
                 <tr><td>df -h</td><td class="font-body" data-en="Disk / overlay space" data-es="Espacio en disco / overlay">Disk / overlay space</td></tr>
-                <tr><td>opkg list-installed</td><td class="font-body" data-en="Installed packages" data-es="Paquetes instalados">Installed packages</td></tr>
+                <tr><td>apk list --installed</td><td class="font-body" data-en="Installed packages" data-es="Paquetes instalados">Installed packages</td></tr>
                 <tr><td>uci show &lt;component&gt;</td><td class="font-body" data-en="View UCI config" data-es="Ver configuración UCI">View UCI config</td></tr>
               </tbody>
             </table>
@@ -1309,8 +1309,8 @@ uci commit dhcp
 service dnsmasq restart</code></pre>
 
         <h4 class="font-display font-bold mt-6 mb-2" data-en="Rollback NTP/NTS changes" data-es="Revertir cambios de NTP/NTS">Rollback NTP/NTS changes</h4>
-        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>opkg remove chrony-nts
-opkg install chrony
+        <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk del chrony-nts
+apk add chrony
 uci delete chrony.@server[0]
 uci -q delete chrony.@allow[0]
 uci add chrony pool
