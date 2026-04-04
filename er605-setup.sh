@@ -426,24 +426,33 @@ uci set chrony.@allow[-1].subnet='192.168.1.0/24'
 uci commit chrony
 
 # Ensure chrony listens on port 123 for LAN NTP clients.
-# OpenWrt regenerates /var/etc/chrony.conf from UCI on every restart,
-# so we can't just add lines to the generated config.  Instead we patch
-# the chronyd init script to replace 'port 0' with 'port 123' after config generation.
+# The main chrony config is /etc/chrony/chrony.conf (static file, not auto-generated).
+# It typically contains 'port 0' which disables the NTP server.
+# We simply change it to 'port 123' so chrony serves NTP to LAN clients.
+CHRONY_CONF="/etc/chrony/chrony.conf"
 CHRONYD_INIT="/etc/init.d/chronyd"
-# Remove any previous port 123 patch (append-style) to avoid duplicates
+
+# Clean up any previous init script patches (from older versions of this script)
 if [ -f "$CHRONYD_INIT" ]; then
     sed -i '/echo "port 123" >> \/var\/etc\/chrony.conf/d' "$CHRONYD_INIT"
+    sed -i '/sed -i "s\/\^port 0/d' "$CHRONYD_INIT"
 fi
-if [ -f "$CHRONYD_INIT" ] && ! grep -q 'sed.*port.*123.*chrony' "$CHRONYD_INIT"; then
-    # Replace 'port 0' (NTP disabled) with 'port 123' in the generated config.
-    # The init script regenerates /var/etc/chrony.conf from UCI on every restart,
-    # which includes 'port 0' by default.  We patch the init script to fix it
-    # right after config generation, before chronyd starts.
-    # Using sed replacement ensures it works even if 'port 0' is already there.
-    sed -i '/procd_set_param command/i\\t\tsed -i "s\/^port 0$/port 123\/" /var/etc/chrony.conf' "$CHRONYD_INIT"
-    ok "Patched chronyd init to set port 123 (replacing port 0)"
+# Remove ghost file created by old append-style patches
+rm -f /var/etc/chrony.conf
+
+if [ -f "$CHRONY_CONF" ]; then
+    if grep -q '^port 0' "$CHRONY_CONF"; then
+        sed -i 's/^port 0$/port 123/' "$CHRONY_CONF"
+        ok "Changed port 0 → port 123 in $CHRONY_CONF"
+    elif grep -q '^port 123' "$CHRONY_CONF"; then
+        ok "Chrony already configured with port 123"
+    else
+        # No port directive found — add one
+        echo "port 123" >> "$CHRONY_CONF"
+        ok "Added port 123 to $CHRONY_CONF"
+    fi
 else
-    ok "chronyd init already includes port 123 patch"
+    warn "$CHRONY_CONF not found — chrony may not serve NTP to LAN"
 fi
 
 /etc/init.d/chronyd enable

@@ -571,10 +571,12 @@ if [ -n "$NTP_LISTEN" ]; then
     fi
 else
     check fail "UDP port 123 not listening — chrony may not be serving NTP to LAN"
-    if grep -q 'port 123' /etc/init.d/chronyd 2>/dev/null || grep -q 'port.*123' /etc/init.d/chronyd 2>/dev/null; then
-        check fail "  Init script has port 123 patch but port not open — try: /etc/init.d/chronyd restart"
+    if grep -q '^port 123' /etc/chrony/chrony.conf 2>/dev/null; then
+        check fail "  chrony.conf has port 123 but port not open — try: /etc/init.d/chronyd restart"
+    elif grep -q '^port 0' /etc/chrony/chrony.conf 2>/dev/null; then
+        check fail "  chrony.conf has port 0 (NTP disabled) — run er605-setup.sh or change to 'port 123'"
     else
-        check fail "  Fix: run er605-setup.sh to patch chronyd init, or manually add 'port 123' to chrony config"
+        check fail "  Fix: add 'port 123' to /etc/chrony/chrony.conf and restart chronyd"
     fi
 fi
 
