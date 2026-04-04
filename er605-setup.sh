@@ -413,47 +413,45 @@ uci set chrony.@server[-1].iburst='yes'
 uci set chrony.@server[-1].nts='yes'
 ok "Cloudflare NTS server configured"
 
-# Allow LAN clients to query NTP
+# Enable NTP server for LAN clients.
+# We use /etc/chrony/conf.d/ (included by chrony.conf via confdir) because:
+# - The UCI 'allow' option uses 'interface', not 'subnet', and the init script's
+#   handle_allow() only reads interface names — setting subnet via UCI is silently ignored.
+# - chrony defaults to port 0 (NTP server disabled) when no 'port' directive is present.
+# Writing to conf.d is simpler and more reliable than patching UCI or the init script.
 info "Enabling NTP server for LAN..."
 
-# Remove existing allow entries to avoid duplicates
-while uci -q get chrony.@allow[0] >/dev/null 2>&1; do
-    uci delete chrony.@allow[0]
-done
-
-uci add chrony allow
-uci set chrony.@allow[-1].subnet='192.168.1.0/24'
-uci commit chrony
-
-# Ensure chrony listens on port 123 for LAN NTP clients.
-# The main chrony config is /etc/chrony/chrony.conf (static file, not auto-generated).
-# By default it has no 'port' directive, so chrony defaults to port 0 (NTP server disabled).
-# We add 'port 123' so chrony serves NTP to LAN clients.
 CHRONY_CONF="/etc/chrony/chrony.conf"
+CHRONY_CONFD="/etc/chrony/conf.d"
 CHRONYD_INIT="/etc/init.d/chronyd"
+NTP_SERVER_CONF="$CHRONY_CONFD/ntp-server.conf"
 
 # Clean up any previous init script patches (from older versions of this script)
 if [ -f "$CHRONYD_INIT" ]; then
     sed -i '/echo "port 123" >> \/var\/etc\/chrony.conf/d' "$CHRONYD_INIT"
     sed -i '/sed -i "s\/\^port 0/d' "$CHRONYD_INIT"
 fi
-# Remove ghost file created by old append-style patches
-rm -f /var/etc/chrony.conf
+rm -f /var/etc/chrony.conf  # ghost file from old append-style patches
 
+# Remove stale UCI allow entries (they don't work — handle_allow reads 'interface')
+while uci -q get chrony.@allow[0] >/dev/null 2>&1; do
+    uci delete chrony.@allow[0]
+done
+uci commit chrony
+
+# Remove any 'port 123' we may have appended to the main chrony.conf in previous runs
 if [ -f "$CHRONY_CONF" ]; then
-    if grep -q '^port 0' "$CHRONY_CONF"; then
-        sed -i 's/^port 0$/port 123/' "$CHRONY_CONF"
-        ok "Changed port 0 → port 123 in $CHRONY_CONF"
-    elif grep -q '^port 123' "$CHRONY_CONF"; then
-        ok "Chrony already configured with port 123"
-    else
-        # No port directive found — add one
-        echo "port 123" >> "$CHRONY_CONF"
-        ok "Added port 123 to $CHRONY_CONF"
-    fi
-else
-    warn "$CHRONY_CONF not found — chrony may not serve NTP to LAN"
+    sed -i '/^port 123$/d' "$CHRONY_CONF"
 fi
+
+# Write NTP server config to conf.d (port + allow in one place)
+mkdir -p "$CHRONY_CONFD"
+cat > "$NTP_SERVER_CONF" << 'EOF'
+# Enable NTP server on standard port for LAN clients
+port 123
+allow 192.168.1.0/24
+EOF
+ok "NTP server config written to $NTP_SERVER_CONF (port 123 + allow LAN)"
 
 /etc/init.d/chronyd enable
 /etc/init.d/chronyd restart

@@ -549,11 +549,16 @@ if [ -f "/etc/init.d/sysntpd" ]; then
 fi
 
 # chrony allow subnet (LAN NTP server)
-ALLOW_SUBNET=$(uci -q get chrony.@allow[-1].subnet 2>/dev/null)
-if [ -n "$ALLOW_SUBNET" ]; then
-    check ok "Chrony allows LAN clients: $ALLOW_SUBNET"
+# Check conf.d first (preferred), then fall back to UCI
+NTP_CONF="/etc/chrony/conf.d/ntp-server.conf"
+ALLOW_CONFD=$(grep '^allow ' "$NTP_CONF" 2>/dev/null | head -1)
+ALLOW_UCI=$(uci -q get chrony.@allow[-1].subnet 2>/dev/null)
+if [ -n "$ALLOW_CONFD" ]; then
+    check ok "Chrony allows LAN clients: $ALLOW_CONFD (via conf.d)"
+elif [ -n "$ALLOW_UCI" ]; then
+    check warn "Chrony allow via UCI ($ALLOW_UCI) — but UCI 'subnet' is ignored by init script; use conf.d instead"
 else
-    check warn "No 'allow' subnet in chrony config — LAN clients can't query NTP"
+    check warn "No 'allow' in chrony config — LAN clients can't query NTP"
 fi
 
 # Port 123 listening — must be on 0.0.0.0 (all interfaces), not just 127.0.0.1
