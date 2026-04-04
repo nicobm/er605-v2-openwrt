@@ -89,20 +89,20 @@ fi
 section "1/6 — Installing packages"
 
 info "Updating package lists..."
-opkg update
+apk update
 
 PACKAGES="dnscrypt-proxy2 chrony-nts ca-certificates curl bind-dig"
 
 for pkg in $PACKAGES; do
-    if opkg list-installed | grep -q "^${pkg} "; then
+    if apk info -e "$pkg" >/dev/null 2>&1; then
         ok "$pkg already installed"
     else
         info "Installing $pkg..."
         # chrony-nts needs chrony removed first
         if [ "$pkg" = "chrony-nts" ]; then
-            opkg remove chrony 2>/dev/null || true
+            apk del chrony 2>/dev/null || true
         fi
-        opkg install "$pkg"
+        apk add "$pkg"
         ok "$pkg installed"
     fi
 done
