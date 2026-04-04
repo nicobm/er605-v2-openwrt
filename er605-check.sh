@@ -549,6 +549,7 @@ if [ -n "$NTP_LISTEN" ]; then
     fi
 else
     check fail "UDP port 123 not listening — chrony may not be serving NTP to LAN"
+    check fail "  Fix: mkdir -p /etc/chrony/conf.d && echo 'port 123' > /etc/chrony/conf.d/ntp-server.conf && /etc/init.d/chronyd restart"
 fi
 
 # LAN zone input policy (must be ACCEPT for NTP from LAN clients)
