@@ -85,6 +85,7 @@
       <a href="#troubleshooting" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Troubleshooting" data-es="Solución de problemas">Troubleshooting</a>
       <a href="#revert" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Revert to Stock" data-es="Volver al stock">Revert to Stock</a>
       <a href="#usage-guide" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Usage Guide" data-es="Guía de uso">Usage Guide</a>
+      <a href="#sysupgrade" class="block px-3 py-1.5 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 border-l-2 border-transparent transition" data-en="Sysupgrade Guide" data-es="Guía de sysupgrade">Sysupgrade Guide</a>
     </nav>
   </aside>
 
@@ -96,7 +97,7 @@
       <section id="top" class="mb-16 fade-in">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mb-6">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span data-en="Tested &amp; verified — March 2026" data-es="Probado y verificado — Marzo 2026">Tested &amp; verified — March 2026</span>
+          <span data-en="Tested &amp; verified — April 2026" data-es="Probado y verificado — Abril 2026">Tested &amp; verified — April 2026</span>
         </div>
         <h1 class="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.1] mb-6">
           <span data-en="Flash OpenWrt on" data-es="Flashear OpenWrt en">Flash OpenWrt on</span><br>
@@ -120,7 +121,7 @@
           </div>
           <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
             <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">OpenWrt</div>
-            <div class="text-sm font-semibold">24.10.5</div>
+            <div class="text-sm font-semibold">25.12.2</div>
           </div>
         </div>
       </section>
@@ -297,16 +298,13 @@ cd ~/er605_flash
 curl -o er605v2_write_initramfs.sh https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/er605v2_write_initramfs.sh
 curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/openwrt-initramfs-compact.bin</code></pre>
 
-                <p class="text-sm font-semibold mt-4 mb-2" data-en="1c. Download sysupgrade images:" data-es="1c. Descargar imágenes de sysupgrade:">1c. Download sysupgrade images:</p>
-                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># Sysupgrade 23.05.0 (required as first sysupgrade):</span>
-curl -o openwrt-23.05.0-sysupgrade.bin https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7621/openwrt-23.05.0-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin
-
-<span class="text-zinc-500"># Sysupgrade 24.10.5 (latest stable):</span>
-curl -o openwrt-24.10.5-sysupgrade.bin https://downloads.openwrt.org/releases/24.10.5/targets/ramips/mt7621/openwrt-24.10.5-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+                <p class="text-sm font-semibold mt-4 mb-2" data-en="1c. Download sysupgrade image:" data-es="1c. Descargar imagen de sysupgrade:">1c. Download sysupgrade image:</p>
+                <pre class="p-4 rounded-xl bg-zinc-900 dark:bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># Sysupgrade 25.12.2 (latest stable):</span>
+curl -o openwrt-25.12.2-sysupgrade.bin https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
 
                 <p class="text-sm font-semibold mt-4 mb-2" data-en="1d. Verify you have everything:" data-es="1d. Verificar que tenés todo:">1d. Verify you have everything:</p>
                 <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ls -la ~/er605_flash/</code></pre>
-                <p class="text-sm text-zinc-500 mt-2" data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and both sysupgrade .bin files." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y ambos archivos .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and both sysupgrade .bin files.</p>
+                <p class="text-sm text-zinc-500 mt-2" data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y el archivo .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file.</p>
               </div>
             </div>
 
@@ -639,23 +637,12 @@ while ! ping -c1 -W1 192.168.1.1 &>/dev/null; do echo "Waiting..."; sleep 2; don
             <div class="flex gap-4">
               <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">13</div>
               <div class="flex-1 min-w-0">
-                <h4 class="font-display font-bold mb-2" data-en="Adjust UBI layout &amp; flash sysupgrade 23.05.0" data-es="Ajustar UBI layout y flashear sysupgrade 23.05.0">Adjust UBI layout &amp; flash sysupgrade 23.05.0</h4>
+                <h4 class="font-display font-bold mb-2" data-en="Adjust UBI layout &amp; flash sysupgrade 25.12.2" data-es="Ajustar UBI layout y flashear sysupgrade 25.12.2">Adjust UBI layout &amp; flash sysupgrade 25.12.2</h4>
                 <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
                   <li data-en="Click <strong>&quot;Adjust UBI Layout&quot;</strong> if it says &quot;NOT ADJUSTED&quot;" data-es="Hacé click en <strong>&quot;Adjust UBI Layout&quot;</strong> si dice &quot;NOT ADJUSTED&quot;">Click <strong>"Adjust UBI Layout"</strong> if it says "NOT ADJUSTED"</li>
-                  <li data-en="Upload the <strong>23.05.0</strong> sysupgrade image and click <strong>Flash</strong>" data-es="Subí la imagen sysupgrade <strong>23.05.0</strong> y hacé click en <strong>Flash</strong>">Upload the <strong>23.05.0</strong> sysupgrade image and click <strong>Flash</strong></li>
+                  <li data-en="Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck &quot;Keep settings&quot;</strong>, and click <strong>Flash</strong>" data-es="Subí la imagen sysupgrade <strong>25.12.2</strong>, <strong>desmarcá &quot;Keep settings&quot;</strong>, y hacé click en <strong>Flash</strong>">Upload the <strong>25.12.2</strong> sysupgrade image, <strong>uncheck "Keep settings"</strong>, and click <strong>Flash</strong></li>
+                  <li data-en="Wait several minutes — do NOT power off the router" data-es="Esperá varios minutos — NO apagues el router">Wait several minutes — do NOT power off the router</li>
                   <li data-en="After reboot, access <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>." data-es="Después del reinicio, accedé a <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>http://192.168.1.1</code> → deberías ver <strong>LuCI</strong>. Login: <strong>root</strong>, contraseña: <em>vacía</em>.">After reboot, access <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>.</li>
-                </ol>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">14</div>
-              <div class="flex-1 min-w-0">
-                <h4 class="font-display font-bold mb-2" data-en="Upgrade to 24.10.5" data-es="Actualizar a 24.10.5">Upgrade to 24.10.5</h4>
-                <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
-                  <li data-en="Go to <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image" data-es="Ir a <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image">Go to <strong>System → Backup / Flash Firmware</strong> → Flash new firmware image</li>
-                  <li data-en="Upload the 24.10.5 image, <strong>uncheck &quot;Keep settings&quot;</strong> (major version jump)" data-es="Subí la imagen 24.10.5, <strong>desmarcá &quot;Keep settings&quot;</strong> (salto de versión mayor)">Upload the 24.10.5 image, <strong>uncheck "Keep settings"</strong> (major version jump)</li>
-                  <li data-en="Click <strong>Continue</strong> and wait several minutes" data-es="Hacé click en <strong>Continue</strong> y esperá varios minutos">Click <strong>Continue</strong> and wait several minutes</li>
                 </ol>
                 <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es="Si ves &quot;Image check failed&quot; en rojo, es porque &quot;Keep settings&quot; está marcado. Desmarcalo y el error desaparece. NO uses &quot;Force upgrade&quot;.">If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</div>
               </div>
@@ -1472,6 +1459,141 @@ reboot</code></pre>
         </div>
       </section>
 
+      <!-- ============== SYSUPGRADE GUIDE ============== -->
+      <section id="sysupgrade" class="mb-16">
+        <h2 class="font-display text-2xl font-bold mb-2" data-en="Sysupgrade Guide" data-es="Guía de sysupgrade">Sysupgrade Guide</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-8" data-en="How to upgrade OpenWrt to a newer release on your already-flashed ER605 v2. This example covers upgrading to 25.12.2 (latest stable as of April 2026)." data-es="Cómo actualizar OpenWrt a una versión más reciente en tu ER605 v2 ya flasheado. Este ejemplo cubre la actualización a 25.12.2 (última versión estable a abril 2026).">How to upgrade OpenWrt to a newer release on your already-flashed ER605 v2. This example covers upgrading to 25.12.2 (latest stable as of April 2026).</p>
+
+        <!-- Post-upgrade system info -->
+        <div class="mb-8 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+          <h3 class="font-display text-sm font-bold mb-3 text-emerald-600 dark:text-emerald-400 uppercase tracking-wider" data-en="Post-upgrade system info" data-es="Info del sistema post-upgrade">Post-upgrade system info</h3>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Hostname" data-es="Hostname">Hostname</div>
+            <div class="font-mono">OpenWrt</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Model" data-es="Modelo">Model</div>
+            <div class="font-mono">TP-Link ER605 v2</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Architecture" data-es="Arquitectura">Architecture</div>
+            <div class="font-mono">MediaTek MT7621 ver:1 eco:3</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Target Platform" data-es="Plataforma">Target Platform</div>
+            <div class="font-mono">ramips/mt7621</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Firmware Version" data-es="Versión de firmware">Firmware Version</div>
+            <div class="font-mono text-xs">OpenWrt 25.12.2 r32802-f505120278</div>
+            <div class="text-zinc-500 dark:text-zinc-400" data-en="Kernel Version" data-es="Versión del kernel">Kernel Version</div>
+            <div class="font-mono">6.12.74</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Download -->
+        <div class="space-y-8">
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">1</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Download the sysupgrade image" data-es="Descargar la imagen de sysupgrade">Download the sysupgrade image</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Download the sysupgrade binary from the official OpenWrt downloads." data-es="Descargá el binario de sysupgrade desde las descargas oficiales de OpenWrt.">Download the sysupgrade binary from the official OpenWrt downloads.</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>cd /tmp
+curl -o openwrt-25.12.2-sysupgrade.bin \
+  https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <div class="mt-3 p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-xs prose-table">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300" data-en="File" data-es="Archivo">File</td>
+                      <td class="font-mono">openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300" data-en="Size" data-es="Tamaño">Size</td>
+                      <td class="font-mono">6.32 MiB</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300">MD5</td>
+                      <td class="font-mono break-all">c67df3d3afd4358edc566dbcc5d66dc7</td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold text-zinc-600 dark:text-zinc-300">SHA256</td>
+                      <td class="font-mono break-all">20e99c590c5824033f8d34c6acff3738aca6ec42bf159c16530ae1680a8f08c0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Verify -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">2</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Verify the checksum" data-es="Verificar el checksum">Verify the checksum</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Always verify the SHA256 hash before flashing to ensure file integrity." data-es="Siempre verificá el hash SHA256 antes de flashear para asegurar la integridad del archivo.">Always verify the SHA256 hash before flashing to ensure file integrity.</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>sha256sum openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="Expected: <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>20e99c59...a8f08c0</code>" data-es="Esperado: <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>20e99c59...a8f08c0</code>">Expected: <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">20e99c59...a8f08c0</code></p>
+            </div>
+          </div>
+
+          <!-- Step 3: Backup -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">3</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Backup your current configuration" data-es="Hacer backup de tu configuración actual">Backup your current configuration</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="Using <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> (or unchecking &quot;Keep settings&quot; in LuCI) wipes all settings. If you have a custom config (firewall rules, DNS, static leases, etc.), download a backup first." data-es="Usar <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> (o desmarcar &quot;Keep settings&quot; en LuCI) borra toda la configuración. Si tenés una config personalizada (reglas de firewall, DNS, leases estáticos, etc.), descargá un backup primero.">Using <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-n</code> (or unchecking "Keep settings" in LuCI) wipes all settings. If you have a custom config (firewall rules, DNS, static leases, etc.), download a backup first.</p>
+              <p class="text-sm text-zinc-600 dark:text-zinc-400" data-en="In LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong>" data-es="En LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong>">In LuCI: <strong>System → Backup / Flash Firmware → Generate archive</strong></p>
+            </div>
+          </div>
+
+          <!-- Step 4: Flash via LuCI -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">4</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Flash via LuCI (web interface)" data-es="Flashear via LuCI (interfaz web)">Flash via LuCI (web interface)</h4>
+              <ol class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2 list-decimal list-inside">
+                <li data-en="Go to <strong>System → Backup / Flash Firmware → Flash new firmware image</strong>" data-es="Ir a <strong>System → Backup / Flash Firmware → Flash new firmware image</strong>">Go to <strong>System → Backup / Flash Firmware → Flash new firmware image</strong></li>
+                <li data-en="Select <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> and click <strong>Upload</strong>" data-es="Seleccioná <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> y hacé click en <strong>Upload</strong>">Select <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code> and click <strong>Upload</strong></li>
+                <li data-en="Verify the checksums shown match the values above (MD5 &amp; SHA256)" data-es="Verificá que los checksums mostrados coincidan con los valores de arriba (MD5 y SHA256)">Verify the checksums shown match the values above (MD5 &amp; SHA256)</li>
+                <li data-en="<strong>Uncheck</strong> &quot;Keep settings and retain the current configuration&quot;" data-es="<strong>Desmarcá</strong> &quot;Keep settings and retain the current configuration&quot;"><strong>Uncheck</strong> "Keep settings and retain the current configuration"</li>
+                <li data-en="Click <strong>Continue</strong> and wait several minutes — do NOT power off the router" data-es="Hacé click en <strong>Continue</strong> y esperá varios minutos — NO apagues el router">Click <strong>Continue</strong> and wait several minutes — do NOT power off the router</li>
+              </ol>
+              <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="If you see &quot;Image check failed&quot; in red, make sure &quot;Keep settings&quot; is unchecked. Do NOT use &quot;Force upgrade&quot;." data-es="Si ves &quot;Image check failed&quot; en rojo, asegurate de que &quot;Keep settings&quot; esté desmarcado. NO uses &quot;Force upgrade&quot;.">If you see "Image check failed" in red, make sure "Keep settings" is unchecked. Do NOT use "Force upgrade".</div>
+            </div>
+          </div>
+
+          <!-- Step 4 alt: Flash via SSH -->
+          <div class="flex gap-4">
+            <div class="step-number bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">alt</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Alternative: flash via SSH" data-es="Alternativa: flashear via SSH">Alternative: flash via SSH</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="If you prefer the command line, transfer the file to the router and run sysupgrade:" data-es="Si preferís la línea de comandos, transferí el archivo al router y ejecutá sysupgrade:">If you prefer the command line, transfer the file to the router and run sysupgrade:</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># From your PC — transfer the image to the router:</span>
+scp openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin root@192.168.1.1:/tmp/
+
+<span class="text-zinc-500"># On the router via SSH:</span>
+cd /tmp
+sysupgrade -n -v openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="The <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> flag means &quot;do not keep settings&quot; (clean install). <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-v</code> enables verbose output." data-es="El flag <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-n</code> significa &quot;no mantener configuración&quot; (instalación limpia). <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>-v</code> habilita la salida detallada.">The <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-n</code> flag means "do not keep settings" (clean install). <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">-v</code> enables verbose output.</p>
+            </div>
+          </div>
+
+          <!-- Step 5: Post-upgrade -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">5</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Post-upgrade: reconfigure" data-es="Post-upgrade: reconfigurar">Post-upgrade: reconfigure</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="After reboot, the router is at <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>192.168.1.1</code> with default settings (root, no password). You need to reconfigure everything: root password, firewall, DNS, DHCP, etc." data-es="Después del reinicio, el router estará en <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>192.168.1.1</code> con configuración por defecto (root, sin contraseña). Tenés que reconfigurar todo: contraseña de root, firewall, DNS, DHCP, etc.">After reboot, the router is at <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">192.168.1.1</code> with default settings (root, no password). You need to reconfigure everything: root password, firewall, DNS, DHCP, etc.</p>
+            </div>
+          </div>
+
+          <!-- Step 6: Disable auto firmware check -->
+          <div class="flex gap-4">
+            <div class="step-number bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">6</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-display font-bold mb-2" data-en="Disable automatic firmware upgrade check" data-es="Deshabilitar chequeo automático de firmware">Disable automatic firmware upgrade check</h4>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="By default, LuCI checks for firmware upgrades on login. You can disable this to avoid unnecessary external requests:" data-es="Por defecto, LuCI chequea actualizaciones de firmware al iniciar sesión. Podés deshabilitar esto para evitar peticiones externas innecesarias:">By default, LuCI checks for firmware upgrades on login. You can disable this to avoid unnecessary external requests:</p>
+              <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code>uci set attendedsysupgrade.client.login_check_for_upgrades='0'
+uci commit attendedsysupgrade</code></pre>
+              <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="This prevents the attended sysupgrade client from calling home every time you open LuCI." data-es="Esto evita que el cliente de attended sysupgrade haga una petición cada vez que abrís LuCI.">This prevents the attended sysupgrade client from calling home every time you open LuCI.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ============== LINKS ============== -->
       <section class="mb-16">
         <h2 class="font-display text-2xl font-bold mb-4" data-en="Links &amp; Resources" data-es="Links y recursos">Links &amp; Resources</h2>
@@ -1480,7 +1602,7 @@ reboot</code></pre>
             <span data-en="chill1Penguin's original method" data-es="Método original de chill1Penguin">chill1Penguin's original method</span>
             <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
           </a>
-          <a href="https://firmware-selector.openwrt.org/?version=24.10.5&target=ramips/mt7621&id=tplink_er605-v2" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
+          <a href="https://firmware-selector.openwrt.org/?version=25.12.2&target=ramips/mt7621&id=tplink_er605-v2" class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition flex items-center justify-between gap-2 group">
             <span data-en="OpenWrt Firmware Selector (ER605 v2)" data-es="Selector de firmware OpenWrt (ER605 v2)">OpenWrt Firmware Selector (ER605 v2)</span>
             <svg class="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
           </a>
