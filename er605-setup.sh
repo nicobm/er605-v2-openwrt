@@ -479,9 +479,25 @@ allow 192.168.1.0/24
 EOF
 ok "NTP server config written to $NTP_SERVER_CONF (port 123 + allow LAN)"
 
+# Ensure chrony.conf includes conf.d directory (some versions lack this)
+if [ -f "$CHRONY_CONF" ] && ! grep -q "^confdir $CHRONY_CONFD" "$CHRONY_CONF" 2>/dev/null; then
+    echo "confdir $CHRONY_CONFD" >> "$CHRONY_CONF"
+fi
+
 /etc/init.d/chronyd enable
 /etc/init.d/chronyd restart
 sleep 2
+
+# OpenWrt's init script generates /var/etc/chrony.conf from UCI — if it
+# doesn't include our conf.d, the port 123 directive is silently ignored.
+# Detect this and inject the confdir so LAN NTP actually works.
+CHRONY_VAR_CONF="/var/etc/chrony.conf"
+if [ -f "$CHRONY_VAR_CONF" ] && ! grep -q "^confdir" "$CHRONY_VAR_CONF" 2>/dev/null; then
+    echo "confdir $CHRONY_CONFD" >> "$CHRONY_VAR_CONF"
+    /etc/init.d/chronyd restart
+    sleep 2
+fi
+
 if pidof chronyd >/dev/null 2>&1; then
     ok "Chrony configured with NTS + LAN server (running)"
 else
