@@ -207,19 +207,38 @@ else
     exit 1
 fi
 
+# Helper: check if something is listening on port 5353
+port_5353_listening() {
+    netstat -tlnup 2>/dev/null | grep -q ':5353 ' && return 0
+    ss -tlnup 2>/dev/null | grep -q ':5353 ' && return 0
+    return 1
+}
+
 # Enable and start dnscrypt-proxy FIRST (while temporary DNS is still active
 # so it can download the resolver list)
 /etc/init.d/dnscrypt-proxy enable
 /etc/init.d/dnscrypt-proxy stop  2>/dev/null || true
-/etc/init.d/dnscrypt-proxy start 2>/dev/null || true
+info "Starting dnscrypt-proxy..."
+/etc/init.d/dnscrypt-proxy start 2>&1 | while IFS= read -r line; do
+    [ -n "$line" ] && info "  dnscrypt-proxy: $line"
+done
+
+# Check if the process is actually running
+sleep 2
+if ! pgrep -x dnscrypt-proxy >/dev/null 2>&1; then
+    warn "dnscrypt-proxy process not found — checking logs..."
+    logread -e dnscrypt 2>/dev/null | tail -5 | while IFS= read -r line; do
+        warn "  $line"
+    done
+fi
 
 # Wait for dnscrypt-proxy to bind to port 5353 (needs to fetch resolver list,
 # which can take 30+ seconds on first run)
-info "Waiting for dnscrypt-proxy to start (up to 45s)..."
+info "Waiting for dnscrypt-proxy to start (up to 60s)..."
 DNSCRYPT_READY="no"
 RETRIES=0
-while [ $RETRIES -lt 45 ]; do
-    if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+while [ $RETRIES -lt 60 ]; do
+    if port_5353_listening; then
         DNSCRYPT_READY="yes"
         break
     fi
@@ -230,19 +249,54 @@ done
 if [ "$DNSCRYPT_READY" = "yes" ]; then
     ok "dnscrypt-proxy started and listening on port 5353"
 else
-    warn "dnscrypt-proxy not yet listening (may need more time to fetch resolvers)"
-    warn "Setup will continue — dnscrypt-proxy should start within ~60s"
+    warn "dnscrypt-proxy not yet listening after 60s"
+    # Try restarting once more
+    info "Retrying dnscrypt-proxy start..."
+    /etc/init.d/dnscrypt-proxy stop  2>/dev/null || true
+    sleep 2
+    /etc/init.d/dnscrypt-proxy start 2>/dev/null || true
+    RETRIES=0
+    while [ $RETRIES -lt 30 ]; do
+        if port_5353_listening; then
+            DNSCRYPT_READY="yes"
+            break
+        fi
+        sleep 1
+        RETRIES=$((RETRIES + 1))
+    done
+    if [ "$DNSCRYPT_READY" = "yes" ]; then
+        ok "dnscrypt-proxy started on retry"
+    else
+        warn "dnscrypt-proxy still not listening — showing recent logs:"
+        logread -e dnscrypt 2>/dev/null | tail -10 | while IFS= read -r line; do
+            warn "  $line"
+        done
+    fi
 fi
 
-# NOW redirect dnsmasq to dnscrypt-proxy (only after it's running or at least starting)
+# Redirect dnsmasq to dnscrypt-proxy
 info "Redirecting dnsmasq to dnscrypt-proxy..."
 uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
-uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
-uci set dhcp.@dnsmasq[0].noresolv='1'
 uci set dhcp.@dnsmasq[0].logqueries='0'
+
+if [ "$DNSCRYPT_READY" = "yes" ]; then
+    uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+    uci set dhcp.@dnsmasq[0].noresolv='1'
+    ok "dnsmasq forwarding to 127.0.0.1#5353"
+else
+    # Keep dnscrypt-proxy as primary but add plain DNS fallback
+    # so the system isn't left without working DNS
+    uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+    uci add_list dhcp.@dnsmasq[0].server='9.9.9.9'
+    uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
+    uci set dhcp.@dnsmasq[0].noresolv='1'
+    warn "dnsmasq forwarding to dnscrypt-proxy + plain DNS fallback"
+    warn "Once dnscrypt-proxy is running, remove fallback with:"
+    warn "  uci delete dhcp.@dnsmasq[0].server && uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353' && uci commit dhcp && service dnsmasq restart"
+fi
+
 uci commit dhcp
 service dnsmasq restart >/dev/null 2>&1
-ok "dnsmasq forwarding to 127.0.0.1#5353"
 
 # --- 3. Ad blocking (dnsmasq + Hagezi Pro++) -----------------------------------
 
@@ -423,7 +477,7 @@ section "Verification"
 FAIL=0
 
 # dnscrypt-proxy listening
-if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+if port_5353_listening; then
     ok "dnscrypt-proxy listening on port 5353"
 else
     err "dnscrypt-proxy NOT listening on port 5353"
@@ -433,8 +487,11 @@ fi
 
 # dnsmasq forwarding
 DNSMASQ_SERVER=$(uci get dhcp.@dnsmasq[0].server 2>/dev/null)
-if [ "$DNSMASQ_SERVER" = "127.0.0.1#5353" ]; then
+if echo "$DNSMASQ_SERVER" | grep -q '127.0.0.1#5353'; then
     ok "dnsmasq forwarding to dnscrypt-proxy"
+    if echo "$DNSMASQ_SERVER" | grep -q '9.9.9.9'; then
+        warn "Plain DNS fallback still active (dnscrypt-proxy was not ready during setup)"
+    fi
 else
     err "dnsmasq NOT forwarding correctly (got: $DNSMASQ_SERVER)"
     FAIL=1
