@@ -207,7 +207,7 @@ if [ -f "$TOML" ]; then
 
 # --- er605-setup START ---
 listen_addresses = ['127.0.0.1:5353']
-server_names = ['quad9-doh-ip4-filter-ecs-pri']
+server_names = ['quad9-doh-ip4-port443-filter-ecs-pri']
 require_nofilter = false
 cert_ignore_timestamp = true
 tls_cipher_suite = [52392, 49199]
