@@ -549,11 +549,16 @@ if [ -f "/etc/init.d/sysntpd" ]; then
 fi
 
 # chrony allow subnet (LAN NTP server)
-ALLOW_SUBNET=$(uci -q get chrony.@allow[-1].subnet 2>/dev/null)
-if [ -n "$ALLOW_SUBNET" ]; then
-    check ok "Chrony allows LAN clients: $ALLOW_SUBNET"
+# Check conf.d first (preferred), then fall back to UCI
+NTP_CONF="/etc/chrony/conf.d/ntp-server.conf"
+ALLOW_CONFD=$(grep '^allow ' "$NTP_CONF" 2>/dev/null | head -1)
+ALLOW_UCI=$(uci -q get chrony.@allow[-1].subnet 2>/dev/null)
+if [ -n "$ALLOW_CONFD" ]; then
+    check ok "Chrony allows LAN clients: $ALLOW_CONFD (via conf.d)"
+elif [ -n "$ALLOW_UCI" ]; then
+    check warn "Chrony allow via UCI ($ALLOW_UCI) — but UCI 'subnet' is ignored by init script; use conf.d instead"
 else
-    check warn "No 'allow' subnet in chrony config — LAN clients can't query NTP"
+    check warn "No 'allow' in chrony config — LAN clients can't query NTP"
 fi
 
 # Port 123 listening — must be on 0.0.0.0 (all interfaces), not just 127.0.0.1
@@ -571,10 +576,12 @@ if [ -n "$NTP_LISTEN" ]; then
     fi
 else
     check fail "UDP port 123 not listening — chrony may not be serving NTP to LAN"
-    if grep -q 'port 123' /etc/init.d/chronyd 2>/dev/null || grep -q 'port.*123' /etc/init.d/chronyd 2>/dev/null; then
-        check fail "  Init script has port 123 patch but port not open — try: /etc/init.d/chronyd restart"
+    if grep -q '^port 123' /etc/chrony/chrony.conf 2>/dev/null; then
+        check fail "  chrony.conf has port 123 but port not open — try: /etc/init.d/chronyd restart"
+    elif grep -q '^port 0' /etc/chrony/chrony.conf 2>/dev/null; then
+        check fail "  chrony.conf has port 0 (NTP disabled) — run er605-setup.sh or change to 'port 123'"
     else
-        check fail "  Fix: run er605-setup.sh to patch chronyd init, or manually add 'port 123' to chrony config"
+        check fail "  Fix: add 'port 123' to /etc/chrony/chrony.conf and restart chronyd"
     fi
 fi
 
