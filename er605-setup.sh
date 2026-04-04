@@ -427,8 +427,8 @@ uci commit chrony
 
 # Ensure chrony listens on port 123 for LAN NTP clients.
 # The main chrony config is /etc/chrony/chrony.conf (static file, not auto-generated).
-# It typically contains 'port 0' which disables the NTP server.
-# We simply change it to 'port 123' so chrony serves NTP to LAN clients.
+# By default it has no 'port' directive, so chrony defaults to port 0 (NTP server disabled).
+# We add 'port 123' so chrony serves NTP to LAN clients.
 CHRONY_CONF="/etc/chrony/chrony.conf"
 CHRONYD_INIT="/etc/init.d/chronyd"
 
