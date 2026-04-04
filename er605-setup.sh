@@ -176,17 +176,30 @@ if [ -f "$TOML" ]; then
     # Backup original
     [ ! -f "${TOML}.orig" ] && cp "$TOML" "${TOML}.orig"
 
-    # Remove any previous er605-setup block FIRST (before commenting originals)
+    # Remove any previous er605-setup blocks FIRST (before commenting originals)
     sed -i '/^# --- er605-setup START/,/^# --- er605-setup END/d' "$TOML"
+    sed -i '/^# --- er605-setup cache START/,/^# --- er605-setup cache END/d' "$TOML"
 
     # Comment out original defaults (only matches uncommented lines)
     sed -i "s/^listen_addresses/#listen_addresses/" "$TOML"
     sed -i "s/^server_names/#server_names/" "$TOML"
     sed -i "s/^require_nofilter/#require_nofilter/" "$TOML"
 
+    # Comment out the existing [cache] section to avoid "Key 'cache' already
+    # defined" TOML errors — we replace it with our own settings below.
+    sed -i "s/^\[cache\]/#[cache]/" "$TOML"
+    sed -i "s/^cache = /#cache = /" "$TOML"
+    sed -i "s/^cache_size/#cache_size/" "$TOML"
+    sed -i "s/^cache_min_ttl/#cache_min_ttl/" "$TOML"
+    sed -i "s/^cache_max_ttl/#cache_max_ttl/" "$TOML"
+    sed -i "s/^cache_neg_min_ttl/#cache_neg_min_ttl/" "$TOML"
+    sed -i "s/^cache_neg_max_ttl/#cache_neg_max_ttl/" "$TOML"
+
     # Insert our configuration block BEFORE the first [section] header.
     # Appending at the end would place settings inside [static], causing
     # "type mismatch for main.StaticConfig" crashes.
+    # NOTE: cache settings go in a separate [cache] block AFTER the top-level
+    # settings — TOML requires [cache] to be a table, not a top-level key.
     cat > /tmp/er605-dns-block << 'DNSEOF'
 
 # --- er605-setup START ---
@@ -195,10 +208,6 @@ server_names = ['quad9-dnscrypt-ip4-filter-ecs-pri']
 require_nofilter = false
 cert_ignore_timestamp = true
 tls_cipher_suite = [52392, 49199]
-cache = true
-cache_size = 1024
-cache_min_ttl = 600
-cache_max_ttl = 86400
 block_ipv6 = true
 # --- er605-setup END ---
 
@@ -208,6 +217,18 @@ DNSEOF
         { print }
     ' "$TOML" > "${TOML}.tmp" && mv "${TOML}.tmp" "$TOML"
     rm -f /tmp/er605-dns-block
+
+    # Add our [cache] section at the end of the file
+    cat >> "$TOML" << 'CACHEEOF'
+
+# --- er605-setup cache START ---
+[cache]
+cache = true
+cache_size = 1024
+cache_min_ttl = 600
+cache_max_ttl = 86400
+# --- er605-setup cache END ---
+CACHEEOF
 
     ok "dnscrypt-proxy2 configured (Quad9, port 5353)"
 else
@@ -410,23 +431,18 @@ uci set chrony.@allow[-1].subnet='192.168.1.0/24'
 uci commit chrony
 
 # Ensure chrony listens on port 123 for LAN NTP clients.
-# The UCI 'allow' section alone may not enable the NTP server port
-# in some OpenWrt chrony builds that default to port 0.
-mkdir -p /etc/chrony/conf.d
-cat > /etc/chrony/conf.d/ntp-server.conf << 'EOF'
-# Enable NTP server on standard port for LAN clients
-port 123
-EOF
-
-# Add confdir if the generated chrony.conf doesn't already include it
-CHRONY_CONF="/etc/chrony/chrony.conf"
-if [ -f "$CHRONY_CONF" ] && ! grep -q 'confdir /etc/chrony/conf.d' "$CHRONY_CONF"; then
-    echo 'confdir /etc/chrony/conf.d' >> "$CHRONY_CONF"
-fi
-# Also check the generated config location used by some OpenWrt versions
-CHRONY_CONF_VAR="/var/etc/chrony.conf"
-if [ -f "$CHRONY_CONF_VAR" ] && ! grep -q 'confdir /etc/chrony/conf.d' "$CHRONY_CONF_VAR"; then
-    echo 'confdir /etc/chrony/conf.d' >> "$CHRONY_CONF_VAR"
+# OpenWrt regenerates /var/etc/chrony.conf from UCI on every restart,
+# so we can't just add lines to the generated config.  Instead we patch
+# the chronyd init script to append 'port 123' after config generation.
+CHRONYD_INIT="/etc/init.d/chronyd"
+if [ -f "$CHRONYD_INIT" ] && ! grep -q 'port 123' "$CHRONYD_INIT"; then
+    # Insert 'port 123' into the generated config just before chronyd starts.
+    # The init script writes to /var/etc/chrony.conf, then calls procd.
+    # We add our line right before `procd_set_param command`.
+    sed -i '/procd_set_param command/i\\t\techo "port 123" >> /var/etc/chrony.conf' "$CHRONYD_INIT"
+    ok "Patched chronyd init to include port 123"
+else
+    ok "chronyd init already includes port 123"
 fi
 
 /etc/init.d/chronyd enable

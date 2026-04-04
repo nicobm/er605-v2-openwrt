@@ -253,8 +253,14 @@ if [ -f "$TOML" ]; then
         check fail "block_ipv6 is not true (guide disables IPv6)"
     fi
 
-    # cache
-    if grep -q "^cache = true" "$TOML" 2>/dev/null; then
+    # cache — check for duplicate [cache] / cache keys (causes FATAL crash)
+    CACHE_SECTIONS=$(grep -c "^\[cache\]" "$TOML" 2>/dev/null)
+    CACHE_KEYS=$(grep -c "^cache = " "$TOML" 2>/dev/null)
+    if [ "$CACHE_SECTIONS" -gt 1 ] 2>/dev/null; then
+        check fail "Duplicate [cache] sections in TOML ($CACHE_SECTIONS found) — dnscrypt-proxy will crash"
+    elif [ "$CACHE_KEYS" -gt 1 ] 2>/dev/null; then
+        check fail "Duplicate 'cache' keys in TOML ($CACHE_KEYS found) — dnscrypt-proxy will crash"
+    elif grep -q "^cache = true" "$TOML" 2>/dev/null || grep -A1 "^\[cache\]" "$TOML" 2>/dev/null | grep -q "^cache = true"; then
         check ok "Cache enabled in dnscrypt-proxy"
     else
         check warn "Cache not enabled in dnscrypt-proxy"
@@ -549,7 +555,11 @@ if [ -n "$NTP_LISTEN" ]; then
     fi
 else
     check fail "UDP port 123 not listening — chrony may not be serving NTP to LAN"
-    check fail "  Fix: mkdir -p /etc/chrony/conf.d && echo 'port 123' > /etc/chrony/conf.d/ntp-server.conf && /etc/init.d/chronyd restart"
+    if grep -q 'port 123' /etc/init.d/chronyd 2>/dev/null; then
+        check fail "  Init script has port 123 patch but port not open — try: /etc/init.d/chronyd restart"
+    else
+        check fail "  Fix: run er605-setup.sh to patch chronyd init, or manually add 'port 123' to chrony config"
+    fi
 fi
 
 # LAN zone input policy (must be ACCEPT for NTP from LAN clients)
