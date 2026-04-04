@@ -589,6 +589,14 @@ else
     check fail "UDP port 123 not listening — chrony may not be serving NTP to LAN"
     if grep -q '^port 123' /etc/chrony/chrony.conf 2>/dev/null; then
         check fail "  chrony.conf has port 123 but port not open — try: /etc/init.d/chronyd restart"
+    elif grep -rq '^port 123' /etc/chrony/conf.d/ 2>/dev/null; then
+        # conf.d has port 123 but it's not being read — likely missing confdir in generated config
+        check fail "  conf.d/ntp-server.conf has port 123 but chronyd isn't reading it"
+        if [ -f /var/etc/chrony.conf ] && ! grep -q '^confdir' /var/etc/chrony.conf 2>/dev/null; then
+            check fail "  /var/etc/chrony.conf missing 'confdir' — re-run er605-setup.sh to fix"
+        else
+            check fail "  Try: /etc/init.d/chronyd restart"
+        fi
     elif grep -q '^port 0' /etc/chrony/chrony.conf 2>/dev/null; then
         check fail "  chrony.conf has port 0 (NTP disabled) — run er605-setup.sh or change to 'port 123'"
     else
