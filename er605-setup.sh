@@ -186,7 +186,7 @@ if [ -f "$TOML" ]; then
     sed -i "s/^require_nofilter/#require_nofilter/" "$TOML"
     sed -i "s/^block_ipv6/#block_ipv6/" "$TOML"
     sed -i "s/^cert_ignore_timestamp/#cert_ignore_timestamp/" "$TOML"
-    sed -i "s/^tls_cipher_suite/#tls_cipher_suite/" "$TOML"
+    sed -i "s/^tls_cipher_suite/#tls_cipher_suite/" "$TOML"  # comment out if present from previous run
 
     # Comment out the existing [cache] section to avoid "Key 'cache' already
     # defined" TOML errors — we replace it with our own settings below.
@@ -210,7 +210,6 @@ listen_addresses = ['127.0.0.1:5353']
 server_names = ['quad9-doh-ip4-port443-filter-ecs-pri']
 require_nofilter = false
 cert_ignore_timestamp = true
-tls_cipher_suite = [52392, 49199]
 block_ipv6 = true
 cache = true
 cache_size = 1024
