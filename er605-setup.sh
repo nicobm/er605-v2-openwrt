@@ -392,6 +392,9 @@ echo '0 4 * * * /usr/sbin/update-blocklist.sh' >> /etc/crontabs/root
 ok "Cron job set (daily at 4:00 AM)"
 
 # Download the blocklist now.
+# The blocklist lives in RAM (/tmp) — it is NOT persistent across reboots.
+# It gets re-downloaded automatically via hotplug (WAN up) and cron (daily 4 AM).
+info "Blocklist is stored in RAM (/tmp) — not persistent, re-downloaded on boot via hotplug + daily via cron"
 # Wait for DNS to be ready — dnsmasq was just restarted and may need a moment.
 info "Downloading Hagezi Pro++ blocklist (this may take a moment)..."
 DNS_WAIT=0
