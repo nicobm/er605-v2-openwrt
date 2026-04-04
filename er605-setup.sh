@@ -53,6 +53,33 @@ if ! ping -c 1 -W 3 1.1.1.1 >/dev/null 2>&1; then
 fi
 ok "Internet is reachable"
 
+# Bootstrap DNS: ensure the router can resolve hostnames for package downloads.
+# If dnscrypt-proxy is not yet running (first run or after reboot), dnsmasq
+# has nowhere to forward DNS queries.  Temporarily point dnsmasq at public
+# resolvers so apk/curl can work.  The script replaces this with encrypted DNS
+# in step 2.
+info "Bootstrapping temporary DNS for package downloads..."
+NEED_BOOTSTRAP="no"
+if ! nslookup downloads.openwrt.org 127.0.0.1 >/dev/null 2>&1; then
+    NEED_BOOTSTRAP="yes"
+    ORIG_NORESOLV=$(uci -q get dhcp.@dnsmasq[0].noresolv 2>/dev/null)
+    ORIG_SERVER=$(uci -q get dhcp.@dnsmasq[0].server 2>/dev/null)
+    uci set dhcp.@dnsmasq[0].noresolv='0'
+    uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+    uci add_list dhcp.@dnsmasq[0].server='9.9.9.9'
+    uci add_list dhcp.@dnsmasq[0].server='1.1.1.1'
+    uci commit dhcp
+    service dnsmasq restart
+    sleep 1
+    if nslookup downloads.openwrt.org 127.0.0.1 >/dev/null 2>&1; then
+        ok "Temporary DNS active (plain 9.9.9.9 + 1.1.1.1 — will switch to encrypted later)"
+    else
+        warn "DNS still not resolving — package downloads may fail"
+    fi
+else
+    ok "DNS already working"
+fi
+
 # --- Timezone configuration (interactive) -------------------------------------
 
 section "Timezone configuration"

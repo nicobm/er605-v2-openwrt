@@ -211,7 +211,7 @@ fi
 if [ -n "$LISTENING_5353" ]; then
     check ok "dnscrypt-proxy listening on port 5353"
 else
-    check fail "Nothing listening on port 5353"
+    check fail "Nothing listening on port 5353 (no DNS! run: /etc/init.d/dnscrypt-proxy start)"
 fi
 
 # toml: single listen_addresses line
@@ -278,7 +278,9 @@ if command -v dig >/dev/null 2>&1; then
         if echo "$DIG_VIA_DNSMASQ" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
             check ok "DNS resolves via dnsmasq->dnscrypt-proxy (example.com -> $DIG_VIA_DNSMASQ)"
         else
-            check fail "DNS does NOT resolve via dnscrypt-proxy (connection refused or timeout)"
+            check fail "DNS does NOT resolve (router has no working DNS!)"
+            check fail "  Fix: /etc/init.d/dnscrypt-proxy start  (wait 30s for resolver list)"
+            check fail "  Or run er605-setup.sh which bootstraps temporary DNS automatically"
         fi
     fi
 else
