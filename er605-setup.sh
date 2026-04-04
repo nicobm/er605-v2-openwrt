@@ -351,9 +351,20 @@ ok "Init script created (priority 18)"
 info "Creating blocklist update script..."
 cat > /usr/sbin/update-blocklist.sh << 'EOF'
 #!/bin/sh
-curl -s -o /tmp/dnsmasq.d/blocklist.conf \
-  https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/dnsmasq/pro.plus.txt && \
-/etc/init.d/dnsmasq restart >/dev/null 2>&1
+# Download Hagezi Pro++ blocklist to a temp file first, then move on success.
+# This avoids truncating the existing blocklist if the download fails.
+TMPFILE="/tmp/dnsmasq.d/blocklist.conf.tmp"
+OUTFILE="/tmp/dnsmasq.d/blocklist.conf"
+URL="https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/dnsmasq/pro.plus.txt"
+
+if curl -sf --retry 3 --retry-delay 5 --connect-timeout 10 -o "$TMPFILE" "$URL"; then
+    mv -f "$TMPFILE" "$OUTFILE"
+    /etc/init.d/dnsmasq restart >/dev/null 2>&1
+else
+    rm -f "$TMPFILE"
+    logger -t blocklist "Failed to download blocklist from $URL"
+    exit 1
+fi
 EOF
 chmod +x /usr/sbin/update-blocklist.sh
 ok "Update script created at /usr/sbin/update-blocklist.sh"
@@ -380,8 +391,17 @@ echo '0 4 * * * /usr/sbin/update-blocklist.sh' >> /etc/crontabs/root
 /etc/init.d/cron restart
 ok "Cron job set (daily at 4:00 AM)"
 
-# Download the blocklist now
+# Download the blocklist now.
+# Wait for DNS to be ready — dnsmasq was just restarted and may need a moment.
 info "Downloading Hagezi Pro++ blocklist (this may take a moment)..."
+DNS_WAIT=0
+while [ $DNS_WAIT -lt 10 ]; do
+    if nslookup cdn.jsdelivr.net 127.0.0.1 >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+    DNS_WAIT=$((DNS_WAIT + 1))
+done
 if /usr/sbin/update-blocklist.sh; then
     LINES=$(wc -l < /tmp/dnsmasq.d/blocklist.conf 2>/dev/null || echo 0)
     ok "Blocklist loaded ($LINES domains)"
