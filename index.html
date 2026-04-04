@@ -924,10 +924,14 @@ uci commit chrony
 /etc/init.d/sysntpd stop
 /etc/init.d/sysntpd disable
 
-<span class="text-zinc-500"># Allow LAN clients to query the router for time</span>
-uci add chrony allow
-uci set chrony.@allow[-1].subnet='192.168.1.0/24'
-uci commit chrony
+<span class="text-zinc-500"># Enable NTP server on port 123 and allow LAN clients</span>
+<span class="text-zinc-500"># We use conf.d because chrony defaults to port 0 (NTP disabled)</span>
+<span class="text-zinc-500"># and the UCI 'allow' option ignores the 'subnet' field.</span>
+mkdir -p /etc/chrony/conf.d
+cat > /etc/chrony/conf.d/ntp-server.conf &lt;&lt; 'EOF'
+port 123
+allow 192.168.1.0/24
+EOF
 /etc/init.d/chronyd restart</code></pre>
             <div class="mt-3 p-3 rounded-lg bg-sky-500/5 border border-sky-500/15 text-xs text-sky-700 dark:text-sky-300" data-en="<strong>How it works:</strong> The router fetches time from Cloudflare using NTS (authenticated + encrypted). It then serves plain NTP to LAN clients. This is fine — NTS protects the internet leg (router ↔ Cloudflare), while the LAN segment (client ↔ router) is already trusted." data-es="<strong>Cómo funciona:</strong> El router obtiene la hora de Cloudflare usando NTS (autenticado + cifrado). Luego sirve NTP plano a los clientes de la LAN. Esto está bien — NTS protege el tramo de internet (router ↔ Cloudflare), mientras que el segmento LAN (cliente ↔ router) ya es confiable."><strong>How it works:</strong> The router fetches time from Cloudflare using NTS (authenticated + encrypted). It then serves plain NTP to LAN clients. This is fine — NTS protects the internet leg (router ↔ Cloudflare), while the LAN segment (client ↔ router) is already trusted.</div>
           </div>
@@ -1308,8 +1312,8 @@ service dnsmasq restart</code></pre>
         <h4 class="font-display font-bold mt-6 mb-2" data-en="Rollback NTP/NTS changes" data-es="Revertir cambios de NTP/NTS">Rollback NTP/NTS changes</h4>
         <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk del chrony-nts
 apk add chrony
+rm -f /etc/chrony/conf.d/ntp-server.conf
 uci delete chrony.@server[0]
-uci -q delete chrony.@allow[0]
 uci add chrony pool
 uci set chrony.@pool[-1].hostname='2.openwrt.pool.ntp.org'
 uci set chrony.@pool[-1].maxpoll='12'
