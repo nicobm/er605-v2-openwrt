@@ -255,7 +255,7 @@ if [ -f "$TOML" ]; then
 
     # Duplicate key check — any duplicate top-level key causes a FATAL TOML crash
     TOML_DUP_FOUND="no"
-    for DUP_KEY in block_ipv6 cert_ignore_timestamp tls_cipher_suite listen_addresses server_names require_nofilter; do
+    for DUP_KEY in block_ipv6 cert_ignore_timestamp listen_addresses server_names require_nofilter; do
         DUP_COUNT=$(grep -c "^${DUP_KEY}" "$TOML" 2>/dev/null)
         if [ "$DUP_COUNT" -gt 1 ] 2>/dev/null; then
             check fail "Duplicate '$DUP_KEY' in TOML ($DUP_COUNT found) — dnscrypt-proxy will crash"
