@@ -184,8 +184,10 @@ if [ -f "$TOML" ]; then
     sed -i "s/^server_names/#server_names/" "$TOML"
     sed -i "s/^require_nofilter/#require_nofilter/" "$TOML"
 
-    # Append our configuration block
-    cat >> "$TOML" << 'DNSEOF'
+    # Insert our configuration block BEFORE the first [section] header.
+    # Appending at the end would place settings inside [static], causing
+    # "type mismatch for main.StaticConfig" crashes.
+    cat > /tmp/er605-dns-block << 'DNSEOF'
 
 # --- er605-setup START ---
 listen_addresses = ['127.0.0.1:5353']
@@ -199,7 +201,13 @@ cache_min_ttl = 600
 cache_max_ttl = 86400
 block_ipv6 = true
 # --- er605-setup END ---
+
 DNSEOF
+    awk -v blockfile="/tmp/er605-dns-block" '
+        /^\[/ && !done { while ((getline line < blockfile) > 0) print line; done=1 }
+        { print }
+    ' "$TOML" > "${TOML}.tmp" && mv "${TOML}.tmp" "$TOML"
+    rm -f /tmp/er605-dns-block
 
     ok "dnscrypt-proxy2 configured (Quad9, port 5353)"
 else
@@ -400,6 +408,27 @@ done
 uci add chrony allow
 uci set chrony.@allow[-1].subnet='192.168.1.0/24'
 uci commit chrony
+
+# Ensure chrony listens on port 123 for LAN NTP clients.
+# The UCI 'allow' section alone may not enable the NTP server port
+# in some OpenWrt chrony builds that default to port 0.
+mkdir -p /etc/chrony/conf.d
+cat > /etc/chrony/conf.d/ntp-server.conf << 'EOF'
+# Enable NTP server on standard port for LAN clients
+port 123
+EOF
+
+# Add confdir if the generated chrony.conf doesn't already include it
+CHRONY_CONF="/etc/chrony/chrony.conf"
+if [ -f "$CHRONY_CONF" ] && ! grep -q 'confdir /etc/chrony/conf.d' "$CHRONY_CONF"; then
+    echo 'confdir /etc/chrony/conf.d' >> "$CHRONY_CONF"
+fi
+# Also check the generated config location used by some OpenWrt versions
+CHRONY_CONF_VAR="/var/etc/chrony.conf"
+if [ -f "$CHRONY_CONF_VAR" ] && ! grep -q 'confdir /etc/chrony/conf.d' "$CHRONY_CONF_VAR"; then
+    echo 'confdir /etc/chrony/conf.d' >> "$CHRONY_CONF_VAR"
+fi
+
 /etc/init.d/chronyd enable
 /etc/init.d/chronyd restart
 sleep 2
@@ -536,6 +565,19 @@ if [ -n "$TZ_SET" ] && [ "$TZ_SET" != "UTC" ]; then
     ok "Timezone: $TZ_SET ($(uci get system.@system[0].timezone 2>/dev/null))"
 else
     warn "Timezone: not configured (defaults to UTC)"
+fi
+
+# Final check: if dnscrypt-proxy is now running, remove plain DNS fallback
+if port_5353_listening; then
+    CURRENT_SERVERS=$(uci -q get dhcp.@dnsmasq[0].server 2>/dev/null)
+    if echo "$CURRENT_SERVERS" | grep -q '9.9.9.9'; then
+        info "dnscrypt-proxy is up — removing plain DNS fallback..."
+        uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+        uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+        uci commit dhcp
+        service dnsmasq restart >/dev/null 2>&1
+        ok "Fallback DNS removed, dnsmasq forwarding only to dnscrypt-proxy"
+    fi
 fi
 
 # DNS resolution test
