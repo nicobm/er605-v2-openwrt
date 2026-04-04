@@ -153,7 +153,7 @@ else
     exit 1
 fi
 
-# Redirect dnsmasq to dnscrypt-proxy
+# Redirect dnsmasq to dnscrypt-proxy (idempotent: clear then set)
 info "Redirecting dnsmasq to dnscrypt-proxy..."
 uci delete dhcp.@dnsmasq[0].server 2>/dev/null || true
 uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
@@ -162,10 +162,27 @@ uci set dhcp.@dnsmasq[0].logqueries='0'
 uci commit dhcp
 ok "dnsmasq forwarding to 127.0.0.1#5353"
 
-# Start and enable dnscrypt-proxy
-service dnscrypt-proxy start 2>/dev/null || true
-service dnscrypt-proxy enable
-ok "dnscrypt-proxy started and enabled"
+# Enable and start dnscrypt-proxy
+/etc/init.d/dnscrypt-proxy enable
+/etc/init.d/dnscrypt-proxy stop  2>/dev/null || true
+/etc/init.d/dnscrypt-proxy start 2>/dev/null || true
+
+# Wait for dnscrypt-proxy to bind to port 5353
+info "Waiting for dnscrypt-proxy to start (up to 15s)..."
+RETRIES=0
+while [ $RETRIES -lt 15 ]; do
+    if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+        break
+    fi
+    sleep 1
+    RETRIES=$((RETRIES + 1))
+done
+
+if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
+    ok "dnscrypt-proxy started and listening on port 5353"
+else
+    warn "dnscrypt-proxy enabled but not yet listening on 5353 (may need more time to fetch resolvers)"
+fi
 
 # --- 3. Ad blocking (dnsmasq + Hagezi Pro++) -----------------------------------
 
@@ -174,13 +191,10 @@ section "3/6 — Setting up ad blocking (Hagezi Pro++)"
 # Create confdir for dnsmasq in /tmp (RAM)
 mkdir -p /tmp/dnsmasq.d
 
-# Add /tmp/dnsmasq.d to confdir list only if not already present
-# (preserves other confdir entries like /etc/dnsmasq.d for allowlists)
-CONFDIR_EXISTS=$(uci get dhcp.@dnsmasq[0].confdir 2>/dev/null | grep -c '/tmp/dnsmasq.d' || true)
-if [ "$CONFDIR_EXISTS" = "0" ]; then
-    uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
-    uci commit dhcp
-fi
+# Ensure /tmp/dnsmasq.d is in confdir exactly once (idempotent: remove then re-add)
+uci del_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d' 2>/dev/null || true
+uci add_list dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
+uci commit dhcp
 
 # Init script to recreate /tmp/dnsmasq.d before dnsmasq starts (priority 18)
 info "Creating init script for /tmp/dnsmasq.d..."
@@ -219,14 +233,14 @@ EOF
 chmod +x /etc/hotplug.d/iface/99-blocklist
 ok "Hotplug script created"
 
-# Cron job for daily update at 4 AM
-if ! grep -q 'update-blocklist.sh' /etc/crontabs/root 2>/dev/null; then
-    echo '0 4 * * * /usr/sbin/update-blocklist.sh' >> /etc/crontabs/root
-    /etc/init.d/cron restart
-    ok "Cron job added (daily at 4:00 AM)"
-else
-    ok "Cron job already exists"
+# Cron job for daily update at 4 AM (idempotent: remove old then add)
+if [ -f /etc/crontabs/root ]; then
+    sed -i '/update-blocklist\.sh/d' /etc/crontabs/root
 fi
+mkdir -p /etc/crontabs
+echo '0 4 * * * /usr/sbin/update-blocklist.sh' >> /etc/crontabs/root
+/etc/init.d/cron restart
+ok "Cron job set (daily at 4:00 AM)"
 
 # Download the blocklist now
 info "Downloading Hagezi Pro++ blocklist (this may take a moment)..."
@@ -272,8 +286,14 @@ done
 uci add chrony allow
 uci set chrony.@allow[-1].subnet='192.168.1.0/24'
 uci commit chrony
+/etc/init.d/chronyd enable
 /etc/init.d/chronyd restart
-ok "Chrony configured with NTS + LAN server"
+sleep 2
+if pidof chronyd >/dev/null 2>&1; then
+    ok "Chrony configured with NTS + LAN server (running)"
+else
+    warn "Chrony configured but not yet running — check with: /etc/init.d/chronyd start"
+fi
 
 # --- 5. Firewall hardening -----------------------------------------------------
 
@@ -343,17 +363,12 @@ section "Verification"
 FAIL=0
 
 # dnscrypt-proxy listening
-if netstat -tlnup 2>/dev/null | grep -q '5353'; then
+if netstat -tlnup 2>/dev/null | grep -q ':5353 '; then
     ok "dnscrypt-proxy listening on port 5353"
 else
-    # Give it a moment to start
-    sleep 3
-    if netstat -tlnup 2>/dev/null | grep -q '5353'; then
-        ok "dnscrypt-proxy listening on port 5353"
-    else
-        err "dnscrypt-proxy NOT listening on port 5353"
-        FAIL=1
-    fi
+    err "dnscrypt-proxy NOT listening on port 5353"
+    warn "Try: /etc/init.d/dnscrypt-proxy start  (may need 30s to fetch resolver list)"
+    FAIL=1
 fi
 
 # dnsmasq forwarding
@@ -409,8 +424,11 @@ fi
 # DNS resolution test
 info "Testing DNS resolution..."
 sleep 2
-if dig @127.0.0.1 -p 5353 example.com +short 2>/dev/null | grep -q '[0-9]'; then
-    ok "DNS resolution working (via dnscrypt-proxy)"
+DIG_OUT=$(dig @127.0.0.1 -p 5353 example.com +short +time=5 +tries=1 2>/dev/null)
+if echo "$DIG_OUT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+    ok "DNS resolution working (via dnscrypt-proxy → $DIG_OUT)"
+elif dig @127.0.0.1 example.com +short +time=5 +tries=1 2>/dev/null | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+    ok "DNS resolution working (via dnsmasq → dnscrypt-proxy)"
 else
     warn "DNS resolution test failed — dnscrypt-proxy may still be initializing (give it 30s)"
 fi

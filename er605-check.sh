@@ -134,7 +134,7 @@ for SVC in dnsmasq dnscrypt-proxy chronyd dropbear firewall; do
     fi
 done
 
-# odhcpd — the guide disables it (IPv6 is not used)
+# odhcpd — needed only if IPv6 is in use
 if [ -f "/etc/init.d/odhcpd" ]; then
     ODHCPD_ENABLED="no"
     if /etc/init.d/odhcpd enabled 2>/dev/null; then
@@ -144,10 +144,22 @@ if [ -f "/etc/init.d/odhcpd" ]; then
     if pidof odhcpd >/dev/null 2>&1; then
         ODHCPD_RUNNING="yes"
     fi
-    if [ "$ODHCPD_ENABLED" = "no" ] && [ "$ODHCPD_RUNNING" = "no" ]; then
-        check ok "odhcpd  (disabled + stopped — correct, IPv6 not used)"
-    elif [ "$ODHCPD_ENABLED" = "yes" ] || [ "$ODHCPD_RUNNING" = "yes" ]; then
-        check fail "odhcpd  (should be disabled — guide disables IPv6)"
+    HAS_IPV6="no"
+    if ip -6 addr show scope global 2>/dev/null | grep -q 'inet6'; then
+        HAS_IPV6="yes"
+    fi
+    if [ "$HAS_IPV6" = "yes" ]; then
+        if [ "$ODHCPD_ENABLED" = "yes" ]; then
+            check ok "odhcpd  (enabled — IPv6 detected on WAN)"
+        else
+            check warn "odhcpd  (disabled but IPv6 detected — may need odhcpd for IPv6 DHCP)"
+        fi
+    else
+        if [ "$ODHCPD_ENABLED" = "no" ] && [ "$ODHCPD_RUNNING" = "no" ]; then
+            check ok "odhcpd  (disabled + stopped — correct, no IPv6)"
+        elif [ "$ODHCPD_ENABLED" = "yes" ] || [ "$ODHCPD_RUNNING" = "yes" ]; then
+            check warn "odhcpd  (running but no IPv6 detected — can disable to save resources)"
+        fi
     fi
 fi
 
@@ -255,16 +267,23 @@ fi
 printf "  ...  Testing DNS resolution (dig @127.0.0.1 -p 5353 example.com)... "
 if command -v dig >/dev/null 2>&1; then
     DIG_RESULT=$(dig @127.0.0.1 -p 5353 example.com +short +time=5 +tries=1 2>/dev/null)
-    if [ -n "$DIG_RESULT" ]; then
+    # Only accept valid IPv4/IPv6 addresses as success (not error messages)
+    if echo "$DIG_RESULT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
         clear_line
         check ok "DNS resolves via dnscrypt-proxy (example.com -> $DIG_RESULT)"
     else
         clear_line
-        check fail "DNS does NOT resolve via dnscrypt-proxy (dig failed)"
+        # Also test via dnsmasq (port 53) which forwards to dnscrypt-proxy
+        DIG_VIA_DNSMASQ=$(dig @127.0.0.1 example.com +short +time=5 +tries=1 2>/dev/null)
+        if echo "$DIG_VIA_DNSMASQ" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+            check ok "DNS resolves via dnsmasq->dnscrypt-proxy (example.com -> $DIG_VIA_DNSMASQ)"
+        else
+            check fail "DNS does NOT resolve via dnscrypt-proxy (connection refused or timeout)"
+        fi
     fi
 else
     clear_line
-    check warn "dig not installed (opkg install bind-dig to test)"
+    check warn "dig not installed (apk add bind-dig to test)"
 fi
 
 # =========================================
@@ -404,9 +423,9 @@ separator "NTP + NTS (Chrony)"
 # =========================================
 
 # chrony-nts installed
-if opkg list-installed 2>/dev/null | grep -q "chrony-nts"; then
+if apk info -e chrony-nts >/dev/null 2>&1; then
     check ok "chrony-nts installed"
-elif opkg list-installed 2>/dev/null | grep -q "chrony"; then
+elif apk info -e chrony >/dev/null 2>&1; then
     check warn "chrony installed but without NTS (chrony-nts missing)"
 else
     check fail "chrony not installed"
@@ -585,7 +604,8 @@ fi
 
 # Hardware flow offloading (should be OFF if using SQM)
 HW_FLOW=$(uci -q get firewall.@defaults[0].flow_offloading_hw 2>/dev/null)
-SQM_INSTALLED=$(opkg list-installed 2>/dev/null | grep -c "luci-app-sqm")
+SQM_INSTALLED=0
+if apk info -e luci-app-sqm >/dev/null 2>&1; then SQM_INSTALLED=1; fi
 if [ "$HW_FLOW" = "1" ] && [ "$SQM_INSTALLED" -gt 0 ] 2>/dev/null; then
     check warn "HW flow offloading ON + SQM installed (incompatible, bypasses QoS)"
 elif [ "$HW_FLOW" = "1" ]; then
@@ -621,8 +641,9 @@ separator "INSTALLED PACKAGES"
 # =========================================
 
 for PKG in dnscrypt-proxy2 chrony-nts ca-certificates bind-dig; do
-    if opkg list-installed 2>/dev/null | grep -q "^${PKG} "; then
-        PKG_VER=$(opkg list-installed 2>/dev/null | grep "^${PKG} " | awk '{print $3}')
+    if apk info -e "$PKG" >/dev/null 2>&1; then
+        PKG_VER=$(apk version "$PKG" 2>/dev/null | awk 'NR==2{print $1}')
+        [ -z "$PKG_VER" ] && PKG_VER="installed"
         check ok "$PKG ($PKG_VER)"
     else
         case "$PKG" in
@@ -634,7 +655,7 @@ done
 
 # Optional packages mentioned in the guide
 for PKG in luci-app-sqm luci-proto-wireguard luci-app-statistics; do
-    if opkg list-installed 2>/dev/null | grep -q "^${PKG} "; then
+    if apk info -e "$PKG" >/dev/null 2>&1; then
         check ok "$PKG (optional, installed)"
     fi
 done
