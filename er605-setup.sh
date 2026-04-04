@@ -201,8 +201,8 @@ if [ -f "$TOML" ]; then
     # Insert our configuration block BEFORE the first [section] header.
     # Appending at the end would place settings inside [static], causing
     # "type mismatch for main.StaticConfig" crashes.
-    # NOTE: cache settings go in a separate [cache] block AFTER the top-level
-    # settings — TOML requires [cache] to be a table, not a top-level key.
+    # NOTE: cache settings are top-level keys in dnscrypt-proxy 2.x,
+    # NOT inside a [cache] section (which would create a TOML table and crash).
     cat > /tmp/er605-dns-block << 'DNSEOF'
 
 # --- er605-setup START ---
@@ -212,6 +212,10 @@ require_nofilter = false
 cert_ignore_timestamp = true
 tls_cipher_suite = [52392, 49199]
 block_ipv6 = true
+cache = true
+cache_size = 1024
+cache_min_ttl = 600
+cache_max_ttl = 86400
 # --- er605-setup END ---
 
 DNSEOF
@@ -220,18 +224,6 @@ DNSEOF
         { print }
     ' "$TOML" > "${TOML}.tmp" && mv "${TOML}.tmp" "$TOML"
     rm -f /tmp/er605-dns-block
-
-    # Add our [cache] section at the end of the file
-    cat >> "$TOML" << 'CACHEEOF'
-
-# --- er605-setup cache START ---
-[cache]
-cache = true
-cache_size = 1024
-cache_min_ttl = 600
-cache_max_ttl = 86400
-# --- er605-setup cache END ---
-CACHEEOF
 
     ok "dnscrypt-proxy2 configured (Quad9, port 5353)"
 else
@@ -436,16 +428,22 @@ uci commit chrony
 # Ensure chrony listens on port 123 for LAN NTP clients.
 # OpenWrt regenerates /var/etc/chrony.conf from UCI on every restart,
 # so we can't just add lines to the generated config.  Instead we patch
-# the chronyd init script to append 'port 123' after config generation.
+# the chronyd init script to replace 'port 0' with 'port 123' after config generation.
 CHRONYD_INIT="/etc/init.d/chronyd"
-if [ -f "$CHRONYD_INIT" ] && ! grep -q 'port 123' "$CHRONYD_INIT"; then
-    # Insert 'port 123' into the generated config just before chronyd starts.
-    # The init script writes to /var/etc/chrony.conf, then calls procd.
-    # We add our line right before `procd_set_param command`.
-    sed -i '/procd_set_param command/i\\t\techo "port 123" >> /var/etc/chrony.conf' "$CHRONYD_INIT"
-    ok "Patched chronyd init to include port 123"
+# Remove any previous port 123 patch (append-style) to avoid duplicates
+if [ -f "$CHRONYD_INIT" ]; then
+    sed -i '/echo "port 123" >> \/var\/etc\/chrony.conf/d' "$CHRONYD_INIT"
+fi
+if [ -f "$CHRONYD_INIT" ] && ! grep -q 'sed.*port.*123.*chrony' "$CHRONYD_INIT"; then
+    # Replace 'port 0' (NTP disabled) with 'port 123' in the generated config.
+    # The init script regenerates /var/etc/chrony.conf from UCI on every restart,
+    # which includes 'port 0' by default.  We patch the init script to fix it
+    # right after config generation, before chronyd starts.
+    # Using sed replacement ensures it works even if 'port 0' is already there.
+    sed -i '/procd_set_param command/i\\t\tsed -i "s\/^port 0$/port 123\/" /var/etc/chrony.conf' "$CHRONYD_INIT"
+    ok "Patched chronyd init to set port 123 (replacing port 0)"
 else
-    ok "chronyd init already includes port 123"
+    ok "chronyd init already includes port 123 patch"
 fi
 
 /etc/init.d/chronyd enable
