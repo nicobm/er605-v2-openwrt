@@ -184,6 +184,9 @@ if [ -f "$TOML" ]; then
     sed -i "s/^listen_addresses/#listen_addresses/" "$TOML"
     sed -i "s/^server_names/#server_names/" "$TOML"
     sed -i "s/^require_nofilter/#require_nofilter/" "$TOML"
+    sed -i "s/^block_ipv6/#block_ipv6/" "$TOML"
+    sed -i "s/^cert_ignore_timestamp/#cert_ignore_timestamp/" "$TOML"
+    sed -i "s/^tls_cipher_suite/#tls_cipher_suite/" "$TOML"
 
     # Comment out the existing [cache] section to avoid "Key 'cache' already
     # defined" TOML errors — we replace it with our own settings below.

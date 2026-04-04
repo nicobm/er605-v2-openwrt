@@ -253,17 +253,33 @@ if [ -f "$TOML" ]; then
         check fail "block_ipv6 is not true (guide disables IPv6)"
     fi
 
+    # Duplicate key check — any duplicate top-level key causes a FATAL TOML crash
+    TOML_DUP_FOUND="no"
+    for DUP_KEY in block_ipv6 cert_ignore_timestamp tls_cipher_suite listen_addresses server_names require_nofilter; do
+        DUP_COUNT=$(grep -c "^${DUP_KEY}" "$TOML" 2>/dev/null)
+        if [ "$DUP_COUNT" -gt 1 ] 2>/dev/null; then
+            check fail "Duplicate '$DUP_KEY' in TOML ($DUP_COUNT found) — dnscrypt-proxy will crash"
+            TOML_DUP_FOUND="yes"
+        fi
+    done
+
     # cache — check for duplicate [cache] / cache keys (causes FATAL crash)
     CACHE_SECTIONS=$(grep -c "^\[cache\]" "$TOML" 2>/dev/null)
     CACHE_KEYS=$(grep -c "^cache = " "$TOML" 2>/dev/null)
     if [ "$CACHE_SECTIONS" -gt 1 ] 2>/dev/null; then
         check fail "Duplicate [cache] sections in TOML ($CACHE_SECTIONS found) — dnscrypt-proxy will crash"
+        TOML_DUP_FOUND="yes"
     elif [ "$CACHE_KEYS" -gt 1 ] 2>/dev/null; then
         check fail "Duplicate 'cache' keys in TOML ($CACHE_KEYS found) — dnscrypt-proxy will crash"
+        TOML_DUP_FOUND="yes"
     elif grep -q "^cache = true" "$TOML" 2>/dev/null || grep -A1 "^\[cache\]" "$TOML" 2>/dev/null | grep -q "^cache = true"; then
         check ok "Cache enabled in dnscrypt-proxy"
     else
         check warn "Cache not enabled in dnscrypt-proxy"
+    fi
+
+    if [ "$TOML_DUP_FOUND" = "yes" ]; then
+        check fail "  Fix: re-run er605-setup.sh or manually remove duplicate keys from $TOML"
     fi
 else
     check fail "dnscrypt-proxy.toml not found"
