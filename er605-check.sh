@@ -456,6 +456,14 @@ else
     check fail "chrony not installed"
 fi
 
+# Leftover pool entries (OpenWrt default '2.openwrt.pool.ntp.org' breaks NTS)
+if uci -q get chrony.@pool[0] >/dev/null 2>&1; then
+    POOL_HOST=$(uci -q get chrony.@pool[0].hostname 2>/dev/null)
+    check fail "Leftover pool entry: $POOL_HOST — pools override NTS. Fix: while uci -q get chrony.@pool[0]; do uci delete chrony.@pool[0]; done && uci commit chrony && /etc/init.d/chronyd restart"
+else
+    check ok "No pool entries (correct — NTS uses server only)"
+fi
+
 # NTS server configured
 CHRONY_HOST=$(uci -q get chrony.@server[-1].hostname 2>/dev/null)
 CHRONY_NTS=$(uci -q get chrony.@server[-1].nts 2>/dev/null)

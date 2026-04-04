@@ -909,7 +909,12 @@ rm -f /etc/config/chrony-opkg</code></pre>
 
           <div>
             <h4 class="font-display font-bold mb-2" data-en="Configure Cloudflare NTS" data-es="Configurar Cloudflare NTS">Configure Cloudflare NTS</h4>
-            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>uci add chrony server
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code><span class="text-zinc-500"># Remove default pool and server entries (pool overrides NTS)</span>
+while uci -q get chrony.@pool[0]; do uci delete chrony.@pool[0]; done
+while uci -q get chrony.@server[0]; do uci delete chrony.@server[0]; done
+
+<span class="text-zinc-500"># Add Cloudflare NTS server</span>
+uci add chrony server
 uci set chrony.@server[-1].hostname='time.cloudflare.com'
 uci set chrony.@server[-1].iburst='yes'
 uci set chrony.@server[-1].nts='yes'
