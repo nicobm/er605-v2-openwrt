@@ -1,7 +1,7 @@
 #!/bin/sh
 # er605-setup.sh — Automated post-install setup for OpenWrt on TP-Link ER605 v2
 #
-# Run this script via SSH on the router AFTER flashing OpenWrt 24.10.x.
+# Run this script via SSH on the router AFTER flashing OpenWrt (tested on 25.12.x).
 # It configures: encrypted DNS, ad blocking, NTP with NTS, firewall
 # hardening, and performance tweaks.
 #
@@ -57,11 +57,24 @@ ok "Internet is reachable"
 
 section "Timezone configuration"
 
-printf "Enter your timezone name (e.g. America/New_York, Europe/London, Asia/Tokyo):\n"
+printf "${CYAN}Enter your timezone name.${NC}\n"
+printf "  Examples:\n"
+printf "    America/New_York    America/Argentina/Buenos_Aires    Europe/London\n"
+printf "    Europe/Madrid       Asia/Tokyo                       Australia/Sydney\n"
+printf "  Full list: https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones\n"
 printf "> "
 read -r TIMEZONE_NAME
-printf "Enter your POSIX timezone string (e.g. EST5EDT, GMT0, CST-8):\n"
-printf "  See: https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones\n"
+printf "\n"
+printf "${CYAN}Enter your POSIX timezone string.${NC}\n"
+printf "  This tells the system the UTC offset and DST rules for your zone.\n"
+printf "  Examples:\n"
+printf "    America/New_York          → EST5EDT,M3.2.0,M11.1.0\n"
+printf "    America/Argentina/Buenos_Aires → ART3\n"
+printf "    Europe/London             → GMT0BST,M3.5.0/1,M10.5.0\n"
+printf "    Europe/Madrid             → CET-1CEST,M3.5.0,M10.5.0/3\n"
+printf "    Asia/Tokyo                → JST-9\n"
+printf "    Australia/Sydney          → AEST-10AEDT,M10.1.0,M4.1.0/3\n"
+printf "  Find yours at: https://openwrt.org/docs/guide-user/base-system/system_configuration#time_zones\n"
 printf "> "
 read -r TIMEZONE_STRING
 
@@ -78,7 +91,7 @@ section "1/6 — Installing packages"
 info "Updating package lists..."
 opkg update
 
-PACKAGES="dnscrypt-proxy2 chrony-nts ca-certificates bind-dig"
+PACKAGES="dnscrypt-proxy2 chrony-nts ca-certificates curl bind-dig"
 
 for pkg in $PACKAGES; do
     if opkg list-installed | grep -q "^${pkg} "; then
@@ -152,7 +165,6 @@ ok "dnsmasq forwarding to 127.0.0.1#5353"
 # Start and enable dnscrypt-proxy
 service dnscrypt-proxy start 2>/dev/null || true
 service dnscrypt-proxy enable
-service dnsmasq restart
 ok "dnscrypt-proxy started and enabled"
 
 # --- 3. Ad blocking (dnsmasq + Hagezi Pro++) -----------------------------------
@@ -291,8 +303,12 @@ ok "Packet steering enabled"
 info "Increasing dnsmasq cache to 1000 entries..."
 uci set dhcp.@dnsmasq[0].cachesize='1000'
 uci commit dhcp
-service dnsmasq restart
 ok "dnsmasq cache set to 1000"
+
+# Restart dnsmasq once (picks up all changes: forwarding, confdir, cache)
+info "Restarting dnsmasq with all new settings..."
+service dnsmasq restart
+ok "dnsmasq restarted"
 
 # Disable odhcpd if no IPv6
 info "Checking for IPv6..."
@@ -319,9 +335,6 @@ uci set system.@system[0].log_size='32'
 uci commit system
 /etc/init.d/log restart
 ok "Log buffer reduced to 32KB"
-
-# Restart network for packet steering
-service network restart
 
 # --- Verification --------------------------------------------------------------
 
@@ -428,3 +441,8 @@ printf "  1. Set a root password:  passwd\n"
 printf "  2. Verify DNS leak test: https://dnsleaktest.com\n"
 printf "  3. Reboot and re-verify: reboot\n"
 printf "\n"
+
+# Restart network last (applies packet steering).
+# This may briefly drop the SSH session — all config is already saved.
+info "Restarting network to apply packet steering (SSH may drop briefly)..."
+service network restart
