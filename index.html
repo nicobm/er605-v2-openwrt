@@ -884,8 +884,8 @@ chmod +x /etc/hotplug.d/iface/99-blocklist</code></pre>
 /etc/init.d/dnsmasq restart</code></pre>
             <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-2" data-en="Note: the domain will be re-blocked on the next daily update. For a permanent allowlist, create a separate file:" data-es="Nota: el dominio se volverá a bloquear en la próxima actualización diaria. Para una allowlist permanente, creá un archivo separado:">Note: the domain will be re-blocked on the next daily update. For a permanent allowlist, create a separate file:</p>
             <pre class="mt-2 p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs"><code><span class="text-zinc-500"># Add to a persistent allowlist that survives updates</span>
-echo 'server=/example.com/#' > /etc/dnsmasq.d/allowlist.conf
 mkdir -p /etc/dnsmasq.d
+echo 'server=/example.com/#' > /etc/dnsmasq.d/allowlist.conf
 uci add_list dhcp.@dnsmasq[0].confdir='/etc/dnsmasq.d'
 uci commit dhcp
 /etc/init.d/dnsmasq restart</code></pre>

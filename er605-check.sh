@@ -505,7 +505,9 @@ if command -v chronyc >/dev/null 2>&1; then
         # Stratum > 6 suggests a misconfiguration or an unusually long chain.
         STRATUM=$(echo "$TRACKING" | grep "^Stratum" | awk '{print $3}')
         if [ -n "$STRATUM" ] 2>/dev/null; then
-            if [ "$STRATUM" -le 6 ] 2>/dev/null; then
+            if [ "$STRATUM" -eq 0 ] 2>/dev/null; then
+                check warn "Stratum: 0 (not yet synchronized — give it a minute)"
+            elif [ "$STRATUM" -le 6 ] 2>/dev/null; then
                 check ok "Stratum: $STRATUM"
             else
                 check fail "Stratum: $STRATUM (too high — expected ≤ 6, check NTP source chain)"
