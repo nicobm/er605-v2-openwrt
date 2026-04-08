@@ -321,6 +321,14 @@ fi
 uci commit dhcp
 service dnsmasq restart >/dev/null 2>&1
 
+# Force the router itself to use encrypted DNS (not just LAN clients)
+info "Disabling ISP DNS on WAN interface (peerdns)..."
+uci set network.wan.peerdns='0'
+uci set network.wan.dns='127.0.0.1'
+uci commit network
+service network restart >/dev/null 2>&1
+ok "Router's own DNS now resolves via 127.0.0.1 (no ISP DNS leak)"
+
 # --- 3. Ad blocking (dnsmasq + Hagezi Pro++) -----------------------------------
 
 section "3/6 — Setting up ad blocking (Hagezi Pro++)"
@@ -598,6 +606,16 @@ if [ "$NORESOLV" = "1" ]; then
     ok "dnsmasq noresolv=1 (ISP DNS blocked)"
 else
     err "dnsmasq noresolv NOT set — DNS may leak to ISP!"
+    FAIL=1
+fi
+
+# peerdns — router's own DNS
+PEERDNS=$(uci get network.wan.peerdns 2>/dev/null)
+WAN_DNS=$(uci get network.wan.dns 2>/dev/null)
+if [ "$PEERDNS" = "0" ] && [ "$WAN_DNS" = "127.0.0.1" ]; then
+    ok "Router DNS via 127.0.0.1 (peerdns=0, no ISP leak)"
+else
+    err "Router's own DNS may leak to ISP (peerdns=$PEERDNS, wan.dns=$WAN_DNS)"
     FAIL=1
 fi
 

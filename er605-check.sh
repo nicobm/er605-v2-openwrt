@@ -193,6 +193,39 @@ else
     check fail "logqueries = '$LOGQUERIES' (expected: 0 — DNS queries are being logged!)"
 fi
 
+# peerdns — router's own DNS must not leak to ISP
+PEERDNS=$(uci -q get network.wan.peerdns 2>/dev/null)
+if [ "$PEERDNS" = "0" ]; then
+    check ok "peerdns = 0 (WAN does not accept ISP DNS)"
+else
+    check fail "peerdns = '$PEERDNS' (expected: 0 — router itself leaks DNS to ISP!)"
+fi
+
+# network.wan.dns — router should resolve via 127.0.0.1
+WAN_DNS=$(uci -q get network.wan.dns 2>/dev/null)
+if [ "$WAN_DNS" = "127.0.0.1" ]; then
+    check ok "network.wan.dns = 127.0.0.1 (router resolves via dnscrypt-proxy)"
+elif [ -z "$WAN_DNS" ]; then
+    check fail "network.wan.dns not set (router uses ISP DNS for its own queries)"
+else
+    check warn "network.wan.dns = '$WAN_DNS' (expected: 127.0.0.1)"
+fi
+
+# /etc/resolv.conf — should contain 127.0.0.1, not ISP IPs
+if [ -f /etc/resolv.conf ]; then
+    RESOLV_NS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | tr '\n' ' ')
+    if echo "$RESOLV_NS" | grep -q '127.0.0.1' 2>/dev/null; then
+        ISP_LEAK=$(echo "$RESOLV_NS" | grep -v '127.0.0.1' | grep -vE '^\s*$' | head -1)
+        if [ -z "$ISP_LEAK" ]; then
+            check ok "/etc/resolv.conf -> 127.0.0.1 only (no ISP DNS leak)"
+        else
+            check warn "/etc/resolv.conf has 127.0.0.1 but also other entries: $RESOLV_NS"
+        fi
+    else
+        check fail "/etc/resolv.conf -> $RESOLV_NS (ISP DNS leak! set peerdns=0 and dns=127.0.0.1 on WAN)"
+    fi
+fi
+
 # cachesize
 CACHESIZE=$(uci -q get dhcp.@dnsmasq[0].cachesize 2>/dev/null)
 if [ "$CACHESIZE" = "1000" ]; then

@@ -343,7 +343,7 @@ curl -o openwrt-25.12.2-sysupgrade.bin https://downloads.openwrt.org/releases/25
               <div class="flex-1 min-w-0">
                 <h4 class="font-display font-bold mb-2" data-en="Connect via SSH" data-es="Conectar via SSH">Connect via SSH</h4>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:" data-es="El servidor SSH del ER605 usa algoritmos legacy que las distros modernas bloquean por defecto. Pasalos directamente en el comando:">The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:</p>
-                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr admin@192.168.0.1</code></pre>
+                <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="553431383c3b15646c677b64636d7b657b64">[email&#160;protected]</a></code></pre>
                 <p class="text-sm text-zinc-500 mt-2" data-en="Use your GUI username (usually admin). Password is the same as the GUI." data-es="Usá tu usuario de la GUI (generalmente admin). La contraseña es la misma de la GUI.">Use your GUI username (usually admin). Password is the same as the GUI.</p>
                 <div class="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/15 text-xs text-amber-700 dark:text-amber-300" data-en="<strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead." data-es="<strong>Nota:</strong> scp no funciona con el ER605 — el shell imprime banners que corrompen la transferencia. Usá el método del servidor HTTP en el Paso 8."><strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead.</div>
               </div>
@@ -685,7 +685,7 @@ uci commit system</code></pre>
             <span class="text-emerald-500 font-bold">6.</span>
             <div>
               <span data-en="<strong>Install useful packages:</strong>" data-es="<strong>Instalar paquetes útiles:</strong>"><strong>Install useful packages:</strong></span>
-              <pre class="mt-2 p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh root@192.168.1.1
+              <pre class="mt-2 p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="097b66667d4938303b27383f3127382738">[email&#160;protected]</a>
 apk update
 apk add luci-app-sqm           <span class="text-zinc-500"># Smart QoS</span>
 apk add luci-proto-wireguard   <span class="text-zinc-500"># Fast VPN</span>
@@ -747,6 +747,16 @@ uci set dhcp.@dnsmasq[0].logqueries='0'
 uci commit dhcp
 service dnsmasq restart</code></pre>
             <div class="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/80" data-en="<strong>Critical: do not skip <code>noresolv='1'</code>.</strong> Without it, dnsmasq still uses the ISP's DNS servers received via DHCP on the WAN interface — your queries will leak to the ISP even though dnscrypt-proxy is running. Verify with: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (must return <code>1</code>)." data-es="<strong>Crítico: no te saltees <code>noresolv='1'</code>.</strong> Sin esto, dnsmasq sigue usando los DNS del ISP que recibe por DHCP en la interfaz WAN — tus consultas se van a filtrar al ISP aunque dnscrypt-proxy esté corriendo. Verificá con: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (debe devolver <code>1</code>)."><strong>Critical: do not skip <code>noresolv='1'</code>.</strong> Without it, dnsmasq still uses the ISP's DNS servers received via DHCP on the WAN interface — your queries will leak to the ISP even though dnscrypt-proxy is running. Verify with: <code>uci get dhcp.@dnsmasq[0].noresolv</code> (must return <code>1</code>).</div>
+          </div>
+
+          <div>
+            <h4 class="font-display font-bold mb-2" data-en="Force the router itself to use encrypted DNS" data-es="Forzar al propio router a usar DNS cifrado">Force the router itself to use encrypted DNS</h4>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="The steps above only cover dnsmasq (which serves LAN clients). The router's own DNS resolution uses <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/resolv.conf</code>, which is populated by the ISP's DNS servers received via DHCP on the WAN interface. Without this step, the router itself still sends unencrypted DNS queries to your ISP." data-es="Los pasos anteriores solo cubren dnsmasq (que sirve a los clientes de la LAN). La resolución DNS propia del router usa <code class='px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs'>/etc/resolv.conf</code>, que se llena con los DNS del ISP recibidos por DHCP en la interfaz WAN. Sin este paso, el propio router sigue enviando consultas DNS sin cifrar a tu ISP.">The steps above only cover dnsmasq (which serves LAN clients). The router's own DNS resolution uses <code class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-xs">/etc/resolv.conf</code>, which is populated by the ISP's DNS servers received via DHCP on the WAN interface. Without this step, the router itself still sends unencrypted DNS queries to your ISP.</p>
+            <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>uci set network.wan.peerdns='0'
+uci set network.wan.dns='127.0.0.1'
+uci commit network
+service network restart</code></pre>
+            <div class="mt-3 p-3 rounded-lg bg-red-500/5 border border-red-500/15 text-xs text-red-600 dark:text-red-300/80" data-en="<strong>Critical: do not skip this.</strong> <code>noresolv='1'</code> only affects dnsmasq (LAN clients). The router's own system processes — curl (blocklist downloads), chrony (NTP resolution), apk (package updates) — use <code>/etc/resolv.conf</code>, which still contains your ISP's raw DNS servers unless you disable <code>peerdns</code>. Verify with: <code>cat /etc/resolv.conf</code> (should show <code>127.0.0.1</code>, not your ISP's IPs)." data-es="<strong>Crítico: no te saltees esto.</strong> <code>noresolv='1'</code> solo afecta a dnsmasq (clientes de la LAN). Los procesos propios del sistema del router — curl (descarga de blocklist), chrony (resolución NTP), apk (actualizaciones de paquetes) — usan <code>/etc/resolv.conf</code>, que sigue conteniendo los DNS crudos de tu ISP a menos que deshabilites <code>peerdns</code>. Verificá con: <code>cat /etc/resolv.conf</code> (debería mostrar <code>127.0.0.1</code>, no las IPs de tu ISP)."><strong>Critical: do not skip this.</strong> <code>noresolv='1'</code> only affects dnsmasq (LAN clients). The router's own system processes — curl (blocklist downloads), chrony (NTP resolution), apk (package updates) — use <code>/etc/resolv.conf</code>, which still contains your ISP's raw DNS servers unless you disable <code>peerdns</code>. Verify with: <code>cat /etc/resolv.conf</code> (should show <code>127.0.0.1</code>, not your ISP's IPs).</div>
           </div>
 
           <div>
@@ -1097,7 +1107,7 @@ uci commit system
                 </tr>
               </thead>
               <tbody class="font-mono text-xs">
-                <tr><td>ssh root@192.168.1.1</td><td class="font-body" data-en="Connect to router" data-es="Conectarse al router">Connect to router</td></tr>
+                <tr><td>ssh <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c2b0adadb682f3fbf0ecf3f4faecf3ecf3">[email&#160;protected]</a></td><td class="font-body" data-en="Connect to router" data-es="Conectarse al router">Connect to router</td></tr>
                 <tr><td>service &lt;name&gt; start/stop/restart</td><td class="font-body" data-en="Control a service" data-es="Controlar un servicio">Control a service</td></tr>
                 <tr><td>service &lt;name&gt; enable/disable</td><td class="font-body" data-en="Enable/disable on boot" data-es="Habilitar/deshabilitar en boot">Enable/disable on boot</td></tr>
                 <tr><td>logread -e &lt;service&gt;</td><td class="font-body" data-en="View logs for a service" data-es="Ver logs de un servicio">View logs for a service</td></tr>
@@ -1141,6 +1151,11 @@ uci get dhcp.@dnsmasq[0].server       <span class="text-zinc-500"># → 127.0.0.
 uci get dhcp.@dnsmasq[0].noresolv     <span class="text-zinc-500"># → 1</span>
 uci get dhcp.@dnsmasq[0].logqueries   <span class="text-zinc-500"># → 0</span>
 
+<span class="text-zinc-500"># Router's own DNS (not leaking to ISP)</span>
+uci get network.wan.peerdns            <span class="text-zinc-500"># → 0</span>
+uci get network.wan.dns                <span class="text-zinc-500"># → 127.0.0.1</span>
+cat /etc/resolv.conf                   <span class="text-zinc-500"># → search lan + nameserver 127.0.0.1 (no ISP IPs)</span>
+
 <span class="text-zinc-500"># dnscrypt-proxy listening</span>
 netstat -tlnup | grep 5353            <span class="text-zinc-500"># → dnscrypt-proxy on TCP+UDP</span>
 
@@ -1181,6 +1196,18 @@ uci get dhcp.@dnsmasq[0].cachesize       <span class="text-zinc-500"># → 1000<
               <tr>
                 <td class="font-mono text-xs">uci get dhcp.@dnsmasq[0].logqueries</td>
                 <td><code class="text-emerald-600 dark:text-emerald-400">0</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get network.wan.peerdns</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">0</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">uci get network.wan.dns</td>
+                <td><code class="text-emerald-600 dark:text-emerald-400">127.0.0.1</code></td>
+              </tr>
+              <tr>
+                <td class="font-mono text-xs">cat /etc/resolv.conf</td>
+                <td data-en="127.0.0.1 only (no ISP IPs)" data-es="Solo 127.0.0.1 (sin IPs del ISP)">127.0.0.1 only (no ISP IPs)</td>
               </tr>
               <tr>
                 <td class="font-mono text-xs">netstat -tlnup | grep 5353</td>
@@ -1255,7 +1282,7 @@ ssh-keygen -R 192.168.1.1</code></pre>
             </summary>
             <div class="p-4 text-sm text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
               <p class="mb-2" data-en="Use the full command with legacy algorithm flags:" data-es="Usá el comando completo con las flags de algoritmos legacy:">Use the full command with legacy algorithm flags:</p>
-              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr root@192.168.1.1</code></pre>
+              <pre class="p-3 rounded-lg bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a2d0cdcdd6e2939b908c93949a8c938c93">[email&#160;protected]</a></code></pre>
             </div>
           </details>
 
@@ -1312,7 +1339,11 @@ ssh-keygen -R 192.168.1.1</code></pre>
 uci set dhcp.@dnsmasq[0].noresolv='0'
 uci delete dhcp.@dnsmasq[0].logqueries 2>/dev/null
 uci commit dhcp
-service dnsmasq restart</code></pre>
+uci set network.wan.peerdns='1'
+uci delete network.wan.dns 2>/dev/null
+uci commit network
+service dnsmasq restart
+service network restart</code></pre>
 
         <h4 class="font-display font-bold mt-6 mb-2" data-en="Rollback NTP/NTS changes" data-es="Revertir cambios de NTP/NTS">Rollback NTP/NTS changes</h4>
         <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs overflow-x-auto"><code>apk del chrony-nts
@@ -1568,7 +1599,7 @@ curl -o openwrt-25.12.2-sysupgrade.bin \
               <h4 class="font-display font-bold mb-2" data-en="Alternative: flash via SSH" data-es="Alternativa: flashear via SSH">Alternative: flash via SSH</h4>
               <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-3" data-en="If you prefer the command line, transfer the file to the router and run sysupgrade:" data-es="Si preferís la línea de comandos, transferí el archivo al router y ejecutá sysupgrade:">If you prefer the command line, transfer the file to the router and run sysupgrade:</p>
               <pre class="p-4 rounded-xl bg-zinc-900 text-zinc-100 text-xs leading-relaxed overflow-x-auto"><code><span class="text-zinc-500"># From your PC — transfer the image to the router:</span>
-scp openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin root@192.168.1.1:/tmp/
+scp openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="31435e5e45710008031f0007091f001f00">[email&#160;protected]</a>:/tmp/
 
 <span class="text-zinc-500"># On the router via SSH:</span>
 cd /tmp
@@ -1637,7 +1668,7 @@ uci commit attendedsysupgrade</code></pre>
   </main>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ===== LANGUAGE TOGGLE =====
 let currentLang = localStorage.getItem('er605-lang') || 'en';
 
@@ -1731,24 +1762,4 @@ const observer = new IntersectionObserver(entries => {
   });
 }, { rootMargin: '-20% 0px -80% 0px' });
 
-sections.forEach(section => observer.observe(section));
-
-// ===== COPY CODE BLOCKS =====
-document.querySelectorAll('pre code').forEach(block => {
-  const btn = document.createElement('button');
-  btn.className = 'copy-code text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 cursor-pointer';
-  btn.textContent = 'Copy';
-  btn.addEventListener('click', () => {
-    navigator.clipboard.writeText(block.textContent).then(() => {
-      btn.textContent = currentLang === 'es' ? 'Copiado!' : 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-    });
-  });
-  block.parentElement.appendChild(btn);
-});
-
-// ===== INIT LANGUAGE =====
-setLang(currentLang);
-</script>
-</body>
-</html>
+sections
