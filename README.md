@@ -33,8 +33,7 @@ Use the [interactive password generator](https://nicobm.github.io/er605-v2-openw
 mkdir -p ~/er605_flash && cd ~/er605_flash
 curl -o er605v2_write_initramfs.sh https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/er605v2_write_initramfs.sh
 curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/openwrt-initramfs-compact.bin
-curl -o openwrt-23.05.0-sysupgrade.bin https://downloads.openwrt.org/releases/23.05.0/targets/ramips/mt7621/openwrt-23.05.0-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin
-curl -o openwrt-24.10.5-sysupgrade.bin https://downloads.openwrt.org/releases/24.10.5/targets/ramips/mt7621/openwrt-24.10.5-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin
+curl -o openwrt-25.12.2-sysupgrade.bin https://downloads.openwrt.org/releases/25.12.2/targets/ramips/mt7621/openwrt-25.12.2-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin
 ```
 
 **2. Disconnect WAN, connect PC to LAN, verify firmware ≤ 2.2.5** at `http://192.168.0.1`.
@@ -92,9 +91,7 @@ reboot
 
 Wait 2–3 minutes. The IP changes to **192.168.1.1**.
 
-**11. Flash sysupgrade 23.05.0** — Open `http://192.168.1.1`, click "Adjust UBI Layout" if needed, upload the 23.05.0 image, click Flash.
-
-**12. Upgrade to 24.10.5** — After reboot, go to System → Backup / Flash Firmware, upload the 24.10.5 image, **uncheck "Keep settings"**, click Continue.
+**11. Adjust UBI layout & flash sysupgrade 25.12.2** — Open `http://192.168.1.1`, click "Adjust UBI Layout" if it says "NOT ADJUSTED", upload the 25.12.2 sysupgrade image, **uncheck "Keep settings"**, and click Flash.
 
 **Done.** LuCI is at `http://192.168.1.1` — login: **root**, password: *empty*.
 
