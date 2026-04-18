@@ -1268,6 +1268,13 @@ wg_apply_changes() {
         info "  → network (wg0 up)"
         service network reload 2>/dev/null || service network restart
         sleep 3
+        # Defensive: `service network reload` doesn't always materialize newly-created
+        # interfaces like wg0 (only modifies existing ones). If wg0 doesn't exist yet
+        # at kernel level, force it up explicitly. This is a no-op when wg0 already exists.
+        if ! ip link show wg0 >/dev/null 2>&1; then
+            ifup wg0 2>/dev/null
+            sleep 2
+        fi
     fi
     if [ "$DIRTY_FIREWALL" = "1" ]; then
         info "  → firewall"
@@ -1485,7 +1492,7 @@ wg_option_install() {
     if [ "$_peer_count" -eq "$_expected" ]; then
         if [ "$LANG_ES" = "1" ]; then ok "WireGuard tiene $_peer_count peer(s) configurados"; else ok "WireGuard has $_peer_count peer(s) configured"; fi
     else
-        fail "$L_WG1_RV_PEERS_WRONG $_peer_count $L_WG1_RV_PEERS_EXPECTED $_expected)"
+        if [ "$LANG_ES" = "1" ]; then fail "WireGuard tiene $_peer_count peer(s) activos (esperado $_expected)"; else fail "WireGuard has $_peer_count peer(s) active (expected $_expected)"; fi
     fi
     if netstat -lnu 2>/dev/null | grep -q ":$WG_PORT "; then
         if [ "$LANG_ES" = "1" ]; then ok "UDP $WG_PORT escuchando"; else ok "UDP $WG_PORT listening"; fi
