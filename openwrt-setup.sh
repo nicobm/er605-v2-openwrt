@@ -1095,7 +1095,7 @@ wg_fix_ddns_service() {
     uci set ddns.dynv6_v4.ip_source='web'
     uci set ddns.dynv6_v4.ip_url='https://api.ipify.org'
     uci set ddns.dynv6_v4.interface='wan'
-    uci set ddns.dynv6_v4.check_interval='10'
+    uci set ddns.dynv6_v4.check_interval='6'
     uci set ddns.dynv6_v4.check_unit='minutes'
     uci set ddns.dynv6_v4.force_interval='72'
     uci set ddns.dynv6_v4.force_unit='hours'
