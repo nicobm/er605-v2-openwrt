@@ -2264,6 +2264,28 @@ check_apk_installed() {
 # apk update — always refresh index (fast no-op if already current)
 apk update >/dev/null 2>&1
 
+# apk upgrade — update installed packages to their latest versions before
+# installing new ones. Can take a few minutes on first run; silent no-op if
+# everything is already current. Runs every time the wizard is executed.
+if [ "$LANG_ES" = "1" ]; then
+    info "Corriendo apk upgrade (puede tardar unos minutos)..."
+else
+    info "Running apk upgrade (this may take a few minutes)..."
+fi
+if apk upgrade >/dev/null 2>&1; then
+    if [ "$LANG_ES" = "1" ]; then
+        ok "apk upgrade completado"
+    else
+        ok "apk upgrade completed"
+    fi
+else
+    if [ "$LANG_ES" = "1" ]; then
+        warn "apk upgrade falló — continuando con los paquetes que ya tengas"
+    else
+        warn "apk upgrade failed — continuing with whatever packages you have"
+    fi
+fi
+
 # chrony base must be removed before chrony-nts can be installed
 if apk info -e chrony >/dev/null 2>&1 && ! apk info -e chrony-nts >/dev/null 2>&1; then
     info "$(if [ "$LANG_ES" = "1" ]; then echo "Removiendo chrony (conflicto con chrony-nts)"; else echo "Removing chrony (conflicts with chrony-nts)"; fi)"
