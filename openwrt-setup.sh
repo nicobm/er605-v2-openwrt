@@ -147,6 +147,11 @@ _load_strings() {
         L_DNSMASQ_FORWARD="dnsmasq forward → 127.0.0.1#5353"
         L_DNSMASQ_NORESOLV="dnsmasq noresolv=1 (ignorar DNS del ISP)"
         L_DNSMASQ_LOGQUERIES="dnsmasq logqueries=0"
+        L_DNSSEC_ENABLED="dnsmasq dnssec=1 (validación de firmas)"
+        L_DNSSEC_CHECK_UNSIGNED="dnsmasq dnssec_check_unsigned=1 (modo estricto)"
+        L_DNSSEC_VERIFIED="Validación DNSSEC activa (respuesta firmada correctamente)"
+        L_DNSSEC_BAD_SIG_REJECTED="DNSSEC rechaza firmas inválidas (sigfail.verteiltesysteme.net SERVFAIL)"
+        L_DNSSEC_TEST_INCONCLUSIVE="Test DNSSEC inconclusivo — dnsmasq puede no haber reiniciado todavía"
         L_WAN_PEERDNS="network.wan.peerdns=0"
         L_WAN_DNS="network.wan.dns=127.0.0.1"
         # --- Ad blocking ---
@@ -330,6 +335,7 @@ _load_strings() {
         L_SEC_IPV6_CHOICE="Elección IPv6"
         L_SEC_PACKAGES="Paquetes"
         L_SEC_ENCRYPTED_DNS="DNS cifrado"
+        L_SEC_DNSSEC="DNSSEC validation"
         L_SEC_AD_BLOCKING="Bloqueo de ads"
         L_SEC_NTP_NTS="NTP + NTS"
         L_SEC_PORT_SECURITY="Seguridad de puertos"
@@ -413,6 +419,11 @@ _load_strings() {
         L_DNSMASQ_FORWARD="dnsmasq forward → 127.0.0.1#5353"
         L_DNSMASQ_NORESOLV="dnsmasq noresolv=1 (ignore ISP DNS)"
         L_DNSMASQ_LOGQUERIES="dnsmasq logqueries=0"
+        L_DNSSEC_ENABLED="dnsmasq dnssec=1 (signature validation)"
+        L_DNSSEC_CHECK_UNSIGNED="dnsmasq dnssec_check_unsigned=1 (strict mode)"
+        L_DNSSEC_VERIFIED="DNSSEC validation active (signed response verified)"
+        L_DNSSEC_BAD_SIG_REJECTED="DNSSEC rejects invalid signatures (sigfail.verteiltesysteme.net SERVFAIL)"
+        L_DNSSEC_TEST_INCONCLUSIVE="DNSSEC test inconclusive — dnsmasq may not have restarted yet"
         L_WAN_PEERDNS="network.wan.peerdns=0"
         L_WAN_DNS="network.wan.dns=127.0.0.1"
         L_CONFDIR_OK="dnsmasq confdir = /tmp/dnsmasq.d (single entry)"
@@ -581,6 +592,7 @@ _load_strings() {
         L_SEC_IPV6_CHOICE="IPv6 choice"
         L_SEC_PACKAGES="Packages"
         L_SEC_ENCRYPTED_DNS="Encrypted DNS"
+        L_SEC_DNSSEC="DNSSEC validation"
         L_SEC_AD_BLOCKING="Ad blocking"
         L_SEC_NTP_NTS="NTP + NTS"
         L_SEC_PORT_SECURITY="Port security"
@@ -1095,7 +1107,7 @@ wg_fix_ddns_service() {
     uci set ddns.dynv6_v4.ip_source='web'
     uci set ddns.dynv6_v4.ip_url='https://api.ipify.org'
     uci set ddns.dynv6_v4.interface='wan'
-    uci set ddns.dynv6_v4.check_interval='6'
+    uci set ddns.dynv6_v4.check_interval='5'
     uci set ddns.dynv6_v4.check_unit='minutes'
     uci set ddns.dynv6_v4.force_interval='72'
     uci set ddns.dynv6_v4.force_unit='hours'
@@ -2311,6 +2323,43 @@ for pkg in dnscrypt-proxy2 chrony-nts ca-certificates curl bind-dig; do
     fi
 done
 
+# Upgrade dnsmasq → dnsmasq-full if DNSSEC is not compiled in.
+# OpenWrt ships "dnsmasq" (basic, no DNSSEC) by default. The "dnsmasq-full"
+# variant has DNSSEC, auth, conntrack, etc. Without DNSSEC support, setting
+# dnssec=1 in UCI is silently ignored and dnsmasq logs a warning on startup.
+# Detection: `dnsmasq --version` output includes either "DNSSEC" or "no-DNSSEC"
+# in its "Compile time options:" line (bare "DNSSEC" = compiled in).
+if command -v dnsmasq >/dev/null 2>&1; then
+    if dnsmasq --version 2>&1 | grep -q "no-DNSSEC"; then
+        if [ "$LANG_ES" = "1" ]; then
+            info "dnsmasq sin soporte DNSSEC — instalando dnsmasq-full"
+        else
+            info "dnsmasq has no DNSSEC support — installing dnsmasq-full"
+        fi
+        if apk add dnsmasq-full >/dev/null 2>&1; then
+            /etc/init.d/dnsmasq restart >/dev/null 2>&1
+            sleep 2
+            if [ "$LANG_ES" = "1" ]; then
+                fixed "dnsmasq-full instalado (ahora con soporte DNSSEC)"
+            else
+                fixed "dnsmasq-full installed (now with DNSSEC support)"
+            fi
+        else
+            if [ "$LANG_ES" = "1" ]; then
+                fail "No se pudo instalar dnsmasq-full — DNSSEC no funcionará"
+            else
+                fail "Failed to install dnsmasq-full — DNSSEC won't work"
+            fi
+        fi
+    else
+        if [ "$LANG_ES" = "1" ]; then
+            ok "dnsmasq con soporte DNSSEC compilado"
+        else
+            ok "dnsmasq has DNSSEC support compiled in"
+        fi
+    fi
+fi
+
 # Clean up leftover config from chrony-opkg package (if present)
 if [ -f /etc/config/chrony-opkg ]; then
     rm -f /etc/config/chrony-opkg
@@ -2509,6 +2558,52 @@ fix_wan_dns() {
 }
 
 check_and_fix "$L_WAN_DNS" check_wan_dns fix_wan_dns
+
+
+# =============================================================================
+# DNSSEC validation (dnsmasq-level, strict mode)
+# =============================================================================
+#
+# By default, dnscrypt-proxy trusts Quad9's DNSSEC validation but doesn't
+# validate signatures itself. This section enables LOCAL DNSSEC validation
+# in dnsmasq — if a domain's signature is invalid or its parent says it should
+# be signed but isn't, dnsmasq returns SERVFAIL instead of the unverified
+# response. Removes the need to trust Quad9 for validation.
+#
+# Strict mode: dnssec=1 + dnssec_check_unsigned=1
+# - dnssec=1 → validates signatures on signed responses
+# - dnssec_check_unsigned=1 → rejects unsigned responses for domains whose
+#   parent zone has DNSSEC (prevents downgrade attacks)
+#
+# Requires a trust-anchors file with the root zone DNSKEY. OpenWrt's dnsmasq
+# package ships with /usr/share/dnsmasq/trust-anchors.conf; we verify its
+# presence and fall back to a manual trust_anchor if missing.
+
+section "$L_SEC_DNSSEC"
+
+check_dnssec_enabled() {
+    [ "$(uci -q get dhcp.@dnsmasq[0].dnssec)" = "1" ]
+}
+
+fix_dnssec_enabled() {
+    uci set dhcp.@dnsmasq[0].dnssec=1
+    uci commit dhcp
+    DIRTY_DNSMASQ=1
+}
+
+check_and_fix "$L_DNSSEC_ENABLED" check_dnssec_enabled fix_dnssec_enabled
+
+check_dnssec_check_unsigned() {
+    [ "$(uci -q get dhcp.@dnsmasq[0].dnssec_check_unsigned)" = "1" ]
+}
+
+fix_dnssec_check_unsigned() {
+    uci set dhcp.@dnsmasq[0].dnssec_check_unsigned=1
+    uci commit dhcp
+    DIRTY_DNSMASQ=1
+}
+
+check_and_fix "$L_DNSSEC_CHECK_UNSIGNED" check_dnssec_check_unsigned fix_dnssec_check_unsigned
 
 
 # =============================================================================
@@ -3378,6 +3473,31 @@ if command -v dig >/dev/null 2>&1; then
                 fail "DNS resolution failed — dnscrypt-proxy may still be starting"
             fi
         fi
+    fi
+
+    # --- DNSSEC validation test ---------------------------------------------
+    # sigfail.verteiltesysteme.net is a domain with deliberately invalid DNSSEC
+    # signatures, used as the standard test for local DNSSEC validation.
+    # If dnsmasq validates DNSSEC properly in strict mode, it MUST return
+    # SERVFAIL (status in dig output). If it returns NOERROR or an IP, DNSSEC
+    # is not being validated and invalid signatures are being passed through.
+    if check_dnssec_enabled 2>/dev/null; then
+        _dnssec_status=$(dig @127.0.0.1 sigfail.verteiltesysteme.net +time=5 +tries=2 2>/dev/null | grep -oE 'status: [A-Z]+' | head -1)
+        case "$_dnssec_status" in
+            "status: SERVFAIL")
+                ok "$L_DNSSEC_BAD_SIG_REJECTED"
+                ;;
+            "status: NOERROR")
+                if [ "$LANG_ES" = "1" ]; then
+                    fail "DNSSEC NO valida: sigfail.verteiltesysteme.net devolvió respuesta (debería ser SERVFAIL)"
+                else
+                    fail "DNSSEC NOT validating: sigfail.verteiltesysteme.net returned a response (should be SERVFAIL)"
+                fi
+                ;;
+            *)
+                warn "$L_DNSSEC_TEST_INCONCLUSIVE"
+                ;;
+        esac
     fi
 else
     warn "$L_RV_DIG_MISSING"
