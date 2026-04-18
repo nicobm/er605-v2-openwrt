@@ -117,6 +117,9 @@ Once OpenWrt is running on the router, the `openwrt-setup.sh` script turns a van
 **Encrypted DNS (DNS-over-HTTPS via Quad9)**
 The router's DNS queries are forwarded to a local dnscrypt-proxy instance that talks to Quad9 over HTTPS with malware filtering and ECS enabled. Your ISP cannot see which domains anyone on the network visits, cannot redirect lookups, and cannot inject ads or tracking. The router also refuses the ISP's DNS servers entirely, so nothing leaks even if a client requests DNS directly.
 
+**Local DNSSEC validation (strict mode)**
+On top of Quad9's upstream validation, the router verifies DNSSEC signatures locally in dnsmasq. This removes the need to trust Quad9 — even if the resolver were compromised or coerced, the router independently verifies each response against the chain of cryptographic signatures up to the root zone. Strict mode (`dnssec_check_unsigned=1`) also rejects unsigned responses for domains whose parent zone requires DNSSEC, preventing downgrade attacks. Because OpenWrt ships a minimal `dnsmasq` build without DNSSEC support, the wizard auto-detects this and transparently upgrades to `dnsmasq-full` during package installation. Verified end-to-end via `sigfail.verteiltesysteme.net` (a test domain with deliberately invalid signatures) — the router returns SERVFAIL, confirming validation is enforced.
+
 **Network-wide ad and tracker blocking (Hagezi Pro++)**
 A ~250,000-domain blocklist is loaded into dnsmasq and applied to every device on the LAN. The list is re-downloaded automatically when WAN comes up and refreshed daily by cron, with a 3-mirror fallback (jsDelivr, GitHub, Codeberg). No per-device software needed. A separate custom blocklist lets you add specific domains (e.g. a site you want to keep yourself off of) alongside the main list.
 
