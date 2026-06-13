@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER605 v2 — Flash + configure OpenWrt (GUI only)</title>
+<meta name="description" content="Flash OpenWrt on the TP-Link ER605 v2 and harden it 100% through the LuCI web GUI: closed firewall, encrypted DNS (DoH), AdBlock, WireGuard and NTP with NTS. No SSH.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js" integrity="sha512-8pbzenDolL1l5OPSsoURCx9TEdMFTaeFipASVrMYKhuYtly+k3tcsQYliOEKTmuB1t7yuzAiVo+yd7SJz+ijFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+  :root { --pico-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main.container { max-width: 52rem; }
+  .lead { font-size: 1.05rem; color: var(--pico-muted-color); }
+  /* barra de idioma */
+  .langbar { display:flex; justify-content:flex-end; margin:0 0 .4rem; }
+  .langbar button { width:auto; margin:0; padding:.25rem .8rem; font-size:.8rem; }
+  .part-label {
+    margin-top: 3.5rem; padding-bottom: .4rem;
+    border-bottom: 2px solid var(--pico-primary);
+  }
+  .part-tag {
+    display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--pico-primary);
+  }
+  /* especificaciones del equipo */
+  .specs { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin:1.5rem 0 0; }
+  .specs > div {
+    border:1px solid var(--pico-muted-border-color); border-radius:.5rem; padding:.6rem .7rem;
+  }
+  .specs .k { font-size:.62rem; text-transform:uppercase; letter-spacing:.08em; color:var(--pico-muted-color); }
+  .specs .v { font-weight:600; font-size:.9rem; }
+  @media (max-width:600px){ .specs{ grid-template-columns:repeat(2,1fr);} }
+  /* bloques de codigo */
+  pre { background:#11161c; color:#e6edf3; border-radius:.55rem; padding:1rem; overflow-x:auto;
+        font-size:.8rem; line-height:1.5; margin:.4rem 0 1rem; }
+  pre code { background:none; color:inherit; padding:0; font-size:inherit; }
+  :not(pre) > code { font-size:.85em; }
+  /* callouts */
+  .callout { border-left:4px solid; border-radius:.45rem; padding:.7rem 1rem; margin:.9rem 0;
+             background:var(--pico-card-background-color); }
+  .callout p { margin:.25rem 0; }
+  .callout.warn    { border-color:#e5484d; background:rgba(229,72,77,.07); }
+  .callout.caution { border-color:#e0a106; background:rgba(224,161,6,.08); }
+  .callout.info    { border-color:#3b82f6; background:rgba(59,130,246,.08); }
+  /* pasos */
+  .step { display:flex; gap:1rem; margin-bottom:1.8rem; }
+  .step-num {
+    flex:0 0 auto; width:2rem; height:2rem; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.85rem;
+    background:var(--pico-primary-background); color:var(--pico-primary-inverse);
+  }
+  .step > div:last-child { min-width:0; flex:1; }
+  /* generador de contrasenas */
+  #pwResults > div { border:1px solid var(--pico-muted-border-color); border-radius:.5rem;
+                     padding:.8rem 1rem; margin-top:.7rem; }
+  #pwResults > div:first-child { border:none; padding:0; margin-bottom:.3rem;
+      font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--pico-muted-color); }
+  #pwRoot, #pwCli212, #pwCli222 { font-family:var(--pico-font-family-monospace); }
+  #pwResults button {
+    width:auto; display:inline-block; padding:.15rem .55rem; font-size:.72rem;
+    margin:0; background:transparent; color:var(--pico-primary);
+    border:1px solid var(--pico-muted-border-color);
+  }
+  .hidden { display:none !important; }
+  /* indice */
+  .toc { font-size:.9rem; }
+  .toc a { display:inline-block; margin:.1rem .9rem .1rem 0; }
+  details { border:1px solid var(--pico-muted-border-color); border-radius:.5rem;
+            padding:.4rem .9rem; margin:.5rem 0; }
+  summary { font-weight:600; }
+  table { font-size:.9rem; }
+  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--pico-muted-border-color);
+           font-size:.85rem; color:var(--pico-muted-color); }
+</style>
+</head>
+<body>
+<main class="container">
+
+<nav class="langbar">
+  <button id="langToggle" class="outline" onclick="toggleLang()">Español</button>
+</nav>
+
+<header>
+  <hgroup>
+    <h1 data-en="Flash &amp;amp; configure OpenWrt on the TP-Link ER605 v2" data-es="Flashear y configurar OpenWrt en el TP-Link ER605 v2">Flash &amp; configure OpenWrt on the TP-Link ER605 v2</h1>
+    <p class="lead" data-en="From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH." data-es="De fábrica a un router OpenWrt endurecido: flasheo paso a paso, y una configuración mínima 100% por GUI (LuCI) — firewall cerrado, DNS cifrado, AdBlock, WireGuard y NTP con NTS. Sin tocar SSH.">From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH.</p>
+  </hgroup>
+  <div class="specs">
+    <div><div class="k">SoC</div><div class="v">MT7621AT</div></div>
+    <div><div class="k">RAM</div><div class="v">256 MB</div></div>
+    <div><div class="k">Target</div><div class="v">ramips/mt7621</div></div>
+    <div><div class="k">OpenWrt</div><div class="v">25.12.4</div></div>
+  </div>
+  <nav class="toc">
+    <small>
+      <strong class="part-tag" data-en="Part 1 · Flashing" data-es="Parte 1 · Flasheo">Part 1 · Flashing</strong><br>
+      <a href="#overview" data-en="Overview" data-es="Resumen">Overview</a>
+      <a href="#compatibility" data-en="Compatibility" data-es="Compatibilidad">Compatibility</a>
+      <a href="#password-gen" data-en="Password generator" data-es="Generador de contraseñas">Password generator</a>
+      <a href="#flash-guide" data-en="Flash guide" data-es="Guía de flasheo">Flash guide</a>
+      <a href="#troubleshooting" data-en="Troubleshooting" data-es="Solución de problemas">Troubleshooting</a>
+      <a href="#revert" data-en="Back to stock" data-es="Volver al stock">Back to stock</a><br>
+      <strong class="part-tag" data-en="Part 2 · GUI configuration" data-es="Parte 2 · Configuración por GUI">Part 2 · GUI configuration</strong><br>
+      <a href="#cfg-password" data-en="Password" data-es="Contraseña">Password</a>
+      <a href="#cfg-wan-drop" data-en="Firewall" data-es="Firewall">Firewall</a>
+      <a href="#cfg-ipv6" data-en="Disable IPv6" data-es="Desactivar IPv6">Disable IPv6</a>
+      <a href="#cfg-doh" data-en="Encrypted DNS" data-es="DNS cifrado">Encrypted DNS</a>
+      <a href="#cfg-adblock" data-en="AdBlock" data-es="AdBlock">AdBlock</a>
+      <a href="#cfg-ddns" data-en="DDNS" data-es="DDNS">DDNS</a>
+      <a href="#cfg-wireguard" data-en="WireGuard" data-es="WireGuard">WireGuard</a>
+      <a href="#cfg-ntp" data-en="NTP + NTS" data-es="NTP + NTS">NTP + NTS</a>
+    </small>
+  </nav>
+</header>
+
+<h2 class="part-label" data-en="<span class='part-tag'>Part 1</span><br>Flashing OpenWrt on the ER605" data-es="<span class='part-tag'>Parte 1</span><br>Flasheo de OpenWrt en el ER605"><span class="part-tag">Part 1</span><br>Flashing OpenWrt on the ER605</h2>
+<p class="lead" data-en="Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware." data-es="Reemplazar el firmware de fábrica de TP-Link por OpenWrt. Esta sección es específica del hardware ER605 v2.">Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware.</p>
+<section id="overview">
+<h2>
+
+<span data-en="Overview" data-es="Resumen">Overview</span>
+</h2>
+<div>
+<p data-en="This guide covers replacing the stock TP-Link firmware on the ER605 v2 with OpenWrt. It applies to all hardware revisions (V2.0, V2.20, V2.26, V2.60) — the limiting factor is the &lt;strong&gt;firmware version&lt;/strong&gt;, not the hardware revision." data-es="Esta guía cubre el reemplazo del firmware de fábrica de TP-Link del ER605 v2 por OpenWrt. Aplica a todas las revisiones de hardware (V2.0, V2.20, V2.26, V2.60) — el factor limitante es la &lt;strong&gt;versión de firmware&lt;/strong&gt;, no la revisión de hardware.">This guide covers replacing the stock TP-Link firmware on the ER605 v2 with OpenWrt. It applies to all hardware revisions (V2.0, V2.20, V2.26, V2.60) — the limiting factor is the <strong>firmware version</strong>, not the hardware revision.</p>
+<p data-en="Based on &lt;a href=&quot;https://github.com/chill1Penguin/er605v2_openwrt_install&quot;&gt;chill1Penguin's method&lt;/a&gt;. The password generator, backup scripts, and initramfs image come from that project." data-es='Basado en el &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install"&gt;método de chill1Penguin&lt;/a&gt;. El generador de contraseñas, los scripts de backup y la imagen initramfs provienen de ese proyecto.'>Based on <a href="https://github.com/chill1Penguin/er605v2_openwrt_install">chill1Penguin's method</a>. The password generator, backup scripts, and initramfs image come from that project.</p>
+</div>
+</section>
+
+<section>
+<div>
+<div class="callout warn">
+<div>
+<span>⚠</span>
+<div>
+<p data-en="Do NOT connect to the internet" data-es="NO conectar a internet">Do NOT connect to the internet</p>
+<p data-en="Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working." data-es="Mantener el cable WAN desconectado durante todo el proceso de flasheo. Si el router detecta acceso a internet, TP-Link requiere un token firmado online y la contraseña generada localmente deja de funcionar.">Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working.</p>
+</div>
+</div>
+</div>
+<div class="callout warn">
+<div>
+<span>⚠</span>
+<div>
+<p data-en="No factory recovery after flashing" data-es="Sin recuperación de fábrica después del flasheo">No factory recovery after flashing</p>
+<p data-en="After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup." data-es="Después de flashear OpenWrt, el modo de recuperación de emergencia del ER605 queda deshabilitado. La única forma de volver al firmware de fábrica es via ubiformat desde la consola de OpenWrt usando tu backup MTD.">After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup.</p>
+</div>
+</div>
+</div>
+<div class="callout warn">
+<div>
+<span>⚠</span>
+<div>
+<p data-en="Bricking risk" data-es="Riesgo de brickeo">Bricking risk</p>
+<p data-en="If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process." data-es="Si se corta la energía durante el flasheo, el router puede quedar brickeado permanentemente. Usar una fuente de energía estable y no desconectar nada durante el proceso.">If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="compatibility">
+<h2 data-en="Firmware Compatibility" data-es="Compatibilidad de firmware">Firmware Compatibility</h2>
+<p data-en="The hardware revision (V2.0, V2.20, etc.) does NOT matter. Only the firmware version matters." data-es="La revisión de hardware (V2.0, V2.20, etc.) NO importa. Solo importa la versión de firmware.">The hardware revision (V2.0, V2.20, etc.) does NOT matter. Only the firmware version matters.</p>
+<div>
+<table>
+<thead>
+<tr>
+<th>Firmware</th>
+<th data-en="Status" data-es="Estado">Status</th>
+<th data-en="Root Access Method" data-es="Método de acceso root">Root Access Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>≤ 2.0.1</td>
+<td><span>✅ <span data-en="Works" data-es="Funciona">Works</span></span></td>
+<td data-en='Direct root login with "root password"' data-es='Login directo como root con "root password"'>Direct root login with "root password"</td>
+</tr>
+<tr>
+<td>2.1.1 – 2.2.5</td>
+<td><span>✅ <span data-en="Works" data-es="Funciona">Works</span></span></td>
+<td data-en="GUI login + enable + debug + CLI debug password" data-es="Login GUI + enable + debug + CLI debug password">GUI login + enable + debug + CLI debug password</td>
+</tr>
+<tr>
+<td>2.2.6</td>
+<td><span>❌ <span data-en="Blocked" data-es="Bloqueado">Blocked</span></span></td>
+<td data-en="Local password generator patched out" data-es="Generador local de contraseñas parcheado">Local password generator patched out</td>
+</tr>
+<tr>
+<td>2.3.0 – 2.3.3</td>
+<td><span>❌ <span data-en="Blocked" data-es="Bloqueado">Blocked</span></span></td>
+<td data-en="RSA-signed tokens + anti-rollback. Downgrade impossible." data-es="Tokens firmados con RSA + anti-rollback. Downgrade imposible.">RSA-signed tokens + anti-rollback. Downgrade impossible.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="callout caution">
+<p data-en="&lt;strong&gt;Firmware 2.2.6+ is confirmed blocked.&lt;/strong&gt; Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass." data-es="&lt;strong&gt;Firmware 2.2.6+ está confirmado como bloqueado.&lt;/strong&gt; Probado en vivo en Marzo 2026: el downgrade de 2.3.3 a 2.2.5 fue imposible usando Emergency Recovery, rollback por GUI, rollback por SSH y factory reset. Si tu router ya tiene 2.2.6+, tus opciones son: contactar soporte TP-Link, comprar otro ER605 con 2.2.5, o esperar un bypass de la comunidad."><strong>Firmware 2.2.6+ is confirmed blocked.</strong> Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass.</p>
+</div>
+</section>
+
+<section id="password-gen">
+<h2>
+
+<span data-en="Password Generator" data-es="Generador de contraseñas">Password Generator</span>
+</h2>
+<p data-en="Generates root and debug passwords locally in your browser. Nothing is sent to any server. Only works with firmware ≤ 2.2.5." data-es="Genera las contraseñas root y debug localmente en tu navegador. Nada se envía a ningún servidor. Solo funciona con firmware ≤ 2.2.5.">Generates root and debug passwords locally in your browser. Nothing is sent to any server. Only works with firmware ≤ 2.2.5.</p>
+<div>
+<div>
+<label data-en="MAC Address" data-es="Dirección MAC" for="macAddr">MAC Address</label>
+<p data-en="Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF." data-es="Se encuentra en la etiqueta en la parte inferior del ER605 o en System Status. Formatos: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, o AABBCCDDEEFF.">Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF.</p>
+<input id="macAddr" oninput="generatePasswords()" placeholder="AA:BB:CC:DD:EE:FF" type="text"/>
+<p class="hidden" data-en="Invalid MAC address. Must contain exactly 12 hex characters." data-es="Dirección MAC inválida. Debe contener exactamente 12 caracteres hexadecimales." id="macErr">Invalid MAC address. Must contain exactly 12 hex characters.</p>
+</div>
+<div>
+<label data-en="Username" data-es="Nombre de usuario" for="uname">Username</label>
+<p data-en="The username you use to log in to the web GUI." data-es="El usuario que usás para entrar a la GUI web.">The username you use to log in to the web GUI.</p>
+<input id="uname" oninput="generatePasswords()" placeholder="admin" type="text"/>
+</div>
+</div>
+<div class="hidden" id="pwResults">
+<div data-en="Generated Passwords" data-es="Contraseñas generadas">Generated Passwords</div>
+<div>
+<div>
+<span>Root password</span>
+<button onclick="copyText('pwRoot',this)"><span class="cp-label">Copy</span></button>
+</div>
+<span id="pwRoot">—</span>
+</div>
+<div>
+<span data-en="CLI debug mode password" data-es="Contraseña del modo debug CLI">CLI debug mode password</span>
+<div>
+<div>
+<span>v2.1.2 &amp; below</span>
+<div id="pwCli212">—</div>
+</div>
+<button onclick="copyText('pwCli212',this)"><span class="cp-label">Copy</span></button>
+</div>
+<div>
+<div>
+<span>v2.2.2 – 2.2.5</span>
+<div id="pwCli222">—</div>
+</div>
+<button onclick="copyText('pwCli222',this)"><span class="cp-label">Copy</span></button>
+</div>
+</div>
+<div class="callout warn">
+<span>v2.2.6+:</span>
+<span data-en="Password generator does not work. TP-Link changed the authentication mechanism." data-es="El generador de contraseñas no funciona. TP-Link cambió el mecanismo de autenticación.">Password generator does not work. TP-Link changed the authentication mechanism.</span>
+</div>
+</div>
+</section>
+
+<section id="flash-guide">
+<h2 data-en="Flash Guide" data-es="Guía de flasheo">Flash Guide</h2>
+<p data-en="Estimated time: 30–45 minutes. Requirements: a Linux PC, an ethernet cable, ssh, curl, python3, md5sum." data-es="Tiempo estimado: 30–45 minutos. Requisitos: una PC con Linux, un cable ethernet, ssh, curl, python3, md5sum.">Estimated time: 30–45 minutes. Requirements: a Linux PC, an ethernet cable, ssh, curl, python3, md5sum.</p>
+<!-- Phase 1 -->
+<div>
+<h3 data-en="Phase 1 — Preparation (with internet)" data-es="Fase 1 — Preparación (con internet)">Phase 1 — Preparation (with internet)</h3>
+<div>
+<!-- Step 1 -->
+<div class="step">
+<div class="step-num">1</div>
+<div>
+<h4 data-en="Download everything" data-es="Descargar todo">Download everything</h4>
+<p data-en="Your PC needs internet for this step. Download all files before touching the router." data-es="Tu PC necesita internet para este paso. Descargá todos los archivos antes de tocar el router.">Your PC needs internet for this step. Download all files before touching the router.</p>
+<p data-en="1a. Generate the debug password using the generator above." data-es="1a. Generá la contraseña debug usando el generador de arriba.">1a. Generate the debug password using the generator above.</p>
+<p data-en="Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version." data-es="Guardá ambas contraseñas CLI debug en un archivo de texto — vas a necesitar la correcta según tu versión de firmware.">Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version.</p>
+<p data-en="1b. Download the initramfs image:" data-es="1b. Descargar la imagen initramfs:">1b. Download the initramfs image:</p>
+<pre><code>mkdir -p ~/er605_flash
+cd ~/er605_flash
+curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/openwrt-initramfs-compact.bin</code></pre>
+<p data-en="1b-bis. Create the flashing script (recommended: safer version)" data-es="1b-bis. Crear el script de flasheo (recomendado: versión más segura)">1b-bis. Create the flashing script (recommended: safer version)</p>
+<p data-en="Instead of downloading chill1Penguin's original script, we create a hardened, 100% POSIX rewrite locally. It does the same thing — flash the initramfs to both kernel UBI partitions — but adds input validation, size bounds (1–5 MiB: catches HTML error pages on the small side and oversized images like a sysupgrade &lt;code&gt;.bin&lt;/code&gt; on the large side), a check that &lt;code&gt;ubiupdatevol&lt;/code&gt; is actually present (so you can't run it on the wrong machine by accident), proper quoting, &lt;code&gt;set -eu&lt;/code&gt;, validation of &lt;code&gt;volumes_count&lt;/code&gt;, a read-back verification of every write (reads each volume back and compares it byte-for-byte with &lt;code&gt;cmp&lt;/code&gt;, so a flash that silently landed wrong is caught now instead of at next boot), a power-loss warning (use a UPS, stay wired, don't unplug mid-flash), an explicit confirmation prompt, and explicit error messages tailored to which flash failed: if the &lt;strong&gt;first&lt;/strong&gt; flash fails, &lt;code&gt;kernel.b&lt;/code&gt; is still intact and the router can still boot — safe to retry. If the &lt;strong&gt;second&lt;/strong&gt; flash fails, the script tells you NOT to reboot until you re-run it." data-es="En vez de descargar el script original de chill1Penguin, creamos localmente una reescritura endurecida 100% POSIX. Hace lo mismo — flashear el initramfs a ambas particiones UBI del kernel — pero agrega validación de entrada, límites de tamaño (1–5 MiB: detecta páginas HTML de error por abajo, y por arriba imágenes de más como un sysupgrade &lt;code&gt;.bin&lt;/code&gt; pasado por error), un chequeo de que &lt;code&gt;ubiupdatevol&lt;/code&gt; exista (así no lo corrés por error en la máquina equivocada), comillas correctas, &lt;code&gt;set -eu&lt;/code&gt;, validación de &lt;code&gt;volumes_count&lt;/code&gt;, una verificación de cada escritura (relee cada volumen y lo compara byte a byte con &lt;code&gt;cmp&lt;/code&gt;, así un flasheo que quedó mal en silencio se detecta ahora y no en el próximo arranque), una advertencia de energía (usá UPS, conexión por cable, no desenchufar a mitad), una confirmación explícita antes de tocar la flash, y mensajes de error específicos según qué flash falló: si falla el &lt;strong&gt;primero&lt;/strong&gt;, &lt;code&gt;kernel.b&lt;/code&gt; sigue intacta y el router puede bootear — es seguro reintentar. Si falla el &lt;strong&gt;segundo&lt;/strong&gt;, el script te avisa que NO reboot hasta volver a correrlo.">Instead of downloading chill1Penguin's original script, we create a hardened, 100% POSIX rewrite locally. It does the same thing — flash the initramfs to both kernel UBI partitions — but adds input validation, size bounds (1–5 MiB: catches HTML error pages on the small side and oversized images like a sysupgrade <code>.bin</code> on the large side), a check that <code>ubiupdatevol</code> is actually present (so you can't run it on the wrong machine by accident), proper quoting, <code>set -eu</code>, validation of <code>volumes_count</code>, a read-back verification of every write (reads each volume back and compares it byte-for-byte with <code>cmp</code>, so a flash that silently landed wrong is caught now instead of at next boot), a power-loss warning (use a UPS, stay wired, don't unplug mid-flash), an explicit confirmation prompt, and explicit error messages tailored to which flash failed: if the <strong>first</strong> flash fails, <code>kernel.b</code> is still intact and the router can still boot — safe to retry. If the <strong>second</strong> flash fails, the script tells you NOT to reboot until you re-run it.</p>
+<p data-en="Paste the whole block below into your terminal — it writes the script with a heredoc and makes it executable:" data-es="Pegá el bloque entero de abajo en tu terminal — escribe el script con un heredoc y lo hace ejecutable:">Paste the whole block below into your terminal — it writes the script with a heredoc and makes it executable:</p>
+<pre><code>cat &gt; er605v2_write_initramfs.sh &lt;&lt;'EOF'
+#!/bin/sh
+#
+# er605v2_write_initramfs.sh — safer POSIX rewrite of chill1Penguin's
+# original script. Flashes an OpenWrt initramfs image to BOTH kernel
+# UBI volumes (kernel and kernel.b) on the TP-Link ER605 v2.
+#
+# Differences vs. the original:
+#   - 100% POSIX shell. No bash-isms, no backticks, no `expr`.
+#   - `set -eu` aborts on any error or unset variable.
+#   - Validates the input file: exists, is a regular readable file,
+#     non-empty, between 1 MiB and 5 MiB (catches HTML error pages,
+#     partial downloads, and oversized images that wouldn't fit in
+#     the 5 MiB kernel UBI volume — e.g. a sysupgrade .bin by mistake).
+#   - Sanity-checks the image magic: OpenWrt MT7621 kernel images are
+#     FIT images starting with 0xD00DFEED. A mismatch only warns (a
+#     custom non-FIT image is unusual but not necessarily wrong), so a
+#     legitimate edge case is never hard-blocked.
+#   - All variables are quoted (handles paths with spaces).
+#   - Validates that volumes_count is a positive integer.
+#   - Shows a summary and asks for an explicit "yes" before flashing.
+#     Skip with: SKIP_CONFIRM=1 ./er605v2_write_initramfs.sh image.bin
+#   - VERIFIES each write by reading the volume back and comparing it
+#     byte-for-byte against the image (cmp). The kernel volumes are
+#     static UBI volumes, so a successful read-back also re-checks UBI's
+#     own CRC-32. A flash that "succeeded" but didn't land correctly is
+#     caught here instead of at the next boot.
+#   - Both ubiupdatevol calls are explicitly checked. If the FIRST
+#     fails (or fails verification), the second partition is untouched,
+#     so the router can still boot — safe to retry. If the SECOND fails
+#     after the first succeeded, the script exits non-zero with a clear
+#     message so you know NOT to reboot before retrying the kernel.b
+#     flash.
+#   - Calls sync on every exit path that touched the flash.
+#
+# Usage: ./er605v2_write_initramfs.sh openwrt-initramfs-compact.bin
+
+set -eu
+
+SCRIPT_NAME=$(basename "$0")
+MIN_SIZE=1048576    # 1 MiB  — below this is almost certainly an error page
+MAX_SIZE=5242880    # 5 MiB  — kernel UBI volume size; larger won't fit
+
+if [ $# -ne 1 ]; then
+    echo "USAGE: $SCRIPT_NAME &lt;path to openwrt-initramfs.bin&gt;" &gt;&amp;2
+    echo "EXAMPLE: ./$SCRIPT_NAME openwrt-initramfs-compact.bin" &gt;&amp;2
+    exit 1
+fi
+
+IMAGE=$1
+
+# ---- 1. Validate the input file ---------------------------------------
+if [ ! -e "$IMAGE" ]; then
+    echo "ERROR: '$IMAGE' does not exist." &gt;&amp;2
+    exit 1
+fi
+if [ ! -f "$IMAGE" ]; then
+    echo "ERROR: '$IMAGE' is not a regular file." &gt;&amp;2
+    exit 1
+fi
+if [ ! -r "$IMAGE" ]; then
+    echo "ERROR: '$IMAGE' is not readable." &gt;&amp;2
+    exit 1
+fi
+if [ ! -s "$IMAGE" ]; then
+    echo "ERROR: '$IMAGE' is empty." &gt;&amp;2
+    exit 1
+fi
+
+IMAGE_SIZE=$(wc -c &lt; "$IMAGE")
+if [ "$IMAGE_SIZE" -lt "$MIN_SIZE" ]; then
+    echo "ERROR: '$IMAGE' is only $IMAGE_SIZE bytes -- too small to be a" &gt;&amp;2
+    echo "       real initramfs image (expected &gt;= $MIN_SIZE bytes)."    &gt;&amp;2
+    echo "       Did the download fail or return an HTML error page?"    &gt;&amp;2
+    exit 1
+fi
+if [ "$IMAGE_SIZE" -gt "$MAX_SIZE" ]; then
+    echo "ERROR: '$IMAGE' is $IMAGE_SIZE bytes -- too large for the"      &gt;&amp;2
+    echo "       kernel UBI volume (max $MAX_SIZE bytes / 5 MiB)."        &gt;&amp;2
+    echo "       Did you pass a sysupgrade .bin instead of the initramfs?" &gt;&amp;2
+    exit 1
+fi
+
+# ---- 1b. Sanity-check the image magic (warn-only) ---------------------
+# OpenWrt MT7621 kernel images are FIT images: the first 4 bytes are the
+# device-tree blob magic 0xD00DFEED. We read them with od (POSIX) and only
+# WARN on mismatch — a hand-built non-FIT image is unusual but might be
+# legitimate, and hard-blocking it would push you toward the less-careful
+# original script. The size check above already catches the common mistakes.
+MAGIC=$(od -An -tx1 -N4 "$IMAGE" 2&gt;/dev/null | tr -d ' \n')
+if [ "$MAGIC" != "d00dfeed" ]; then
+    echo "WARNING: '$IMAGE' does not start with the expected FIT magic"   &gt;&amp;2
+    echo "         (0xD00DFEED). Got: 0x$MAGIC."                          &gt;&amp;2
+    echo "         This is the right magic for a stock OpenWrt MT7621"    &gt;&amp;2
+    echo "         initramfs. If you built a custom image you may know"   &gt;&amp;2
+    echo "         better; otherwise double-check you have the right file." &gt;&amp;2
+fi
+
+# ---- 2. Check that ubiupdatevol is available --------------------------
+if ! command -v ubiupdatevol &gt;/dev/null 2&gt;&amp;1; then
+    echo "ERROR: 'ubiupdatevol' not found in PATH."                  &gt;&amp;2
+    echo "       Are you running this on the ER605 (not on your PC)?" &gt;&amp;2
+    exit 1
+fi
+
+# ---- 3. Locate the UBI volumes ----------------------------------------
+if [ ! -r /sys/class/ubi/ubi0/volumes_count ]; then
+    echo "ERROR: /sys/class/ubi/ubi0 not found. Is UBI attached?" &gt;&amp;2
+    exit 1
+fi
+
+VOL_COUNT=$(cat /sys/class/ubi/ubi0/volumes_count)
+case $VOL_COUNT in
+    ''|*[!0-9]*)
+        echo "ERROR: unexpected volumes_count value: '$VOL_COUNT'" &gt;&amp;2
+        exit 1 ;;
+esac
+if [ "$VOL_COUNT" -lt 1 ]; then
+    echo "ERROR: ubi0 reports zero volumes." &gt;&amp;2
+    exit 1
+fi
+
+VOL_KERNEL=
+VOL_KERNELB=
+
+i=0
+while [ "$i" -lt "$VOL_COUNT" ]; do
+    if [ -r "/sys/class/ubi/ubi0_$i/name" ]; then
+        NAME=$(cat "/sys/class/ubi/ubi0_$i/name")
+        case "$NAME" in
+            kernel)   VOL_KERNEL=$i ;;
+            kernel.b) VOL_KERNELB=$i ;;
+        esac
+    fi
+    i=$((i + 1))
+done
+
+if [ -z "$VOL_KERNEL" ] || [ -z "$VOL_KERNELB" ]; then
+    echo "ERROR: required UBI volume not found (need 'kernel' and 'kernel.b')." &gt;&amp;2
+    exit 1
+fi
+
+# ---- 4. Show summary and confirm --------------------------------------
+echo "========================================================"
+echo " ER605 v2 -- initramfs flash"
+echo "--------------------------------------------------------"
+echo " Image:         $IMAGE"
+echo " Image size:    $IMAGE_SIZE bytes"
+echo " Will flash to: /dev/ubi0_$VOL_KERNEL  (kernel)"
+echo "                /dev/ubi0_$VOL_KERNELB  (kernel.b)"
+echo "========================================================"
+echo
+echo " WARNING: this OVERWRITES both kernel partitions."
+echo " A power loss during flashing can BRICK the router."
+echo
+echo " Before you continue:"
+echo "   * Use a stable power source (UPS if you have one)."
+echo "   * Do NOT unplug the router or your machine mid-flash."
+echo "   * Run this over a WIRED connection (or serial console),"
+echo "     never over Wi-Fi — a dropped link mid-write is dangerous."
+echo "   * The whole flash takes only a few seconds; let it finish."
+echo
+
+if [ "${SKIP_CONFIRM:-0}" != "1" ]; then
+    printf "Type 'yes' to continue: "
+    ANSWER=
+    read -r ANSWER || true
+    if [ "$ANSWER" != "yes" ]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
+# ---- 5. Flash + verify ------------------------------------------------
+# Helper: read the volume back and compare it byte-for-byte to the image.
+# The kernel volumes are static UBI volumes, so reading the char device
+# returns exactly the written data (and re-checks UBI's CRC-32 on the way).
+verify_volume() {
+    # $1 = volume device path
+    cmp -s "$1" "$IMAGE"
+}
+
+# Flash kernel first. If it fails here, kernel.b is still untouched, so
+# the router can still boot from kernel.b — safe to investigate and retry.
+echo "Flashing /dev/ubi0_$VOL_KERNEL  (kernel) ..."
+if ! ubiupdatevol "/dev/ubi0_$VOL_KERNEL" "$IMAGE"; then
+    sync
+    echo "ERROR: first flash (kernel) FAILED."                            &gt;&amp;2
+    echo "       Neither partition was overwritten -- 'kernel.b' is still" &gt;&amp;2
+    echo "       intact, so the router should still boot. Safe to retry." &gt;&amp;2
+    exit 1
+fi
+sync
+echo "Verifying /dev/ubi0_$VOL_KERNEL  (kernel) ..."
+if ! verify_volume "/dev/ubi0_$VOL_KERNEL"; then
+    sync
+    echo "ERROR: verification of 'kernel' FAILED -- the data read back"   &gt;&amp;2
+    echo "       does not match the image. 'kernel.b' is still intact, so" &gt;&amp;2
+    echo "       the router should still boot. Investigate and retry."     &gt;&amp;2
+    exit 1
+fi
+
+# Flash kernel.b second. If THIS fails, kernel is already overwritten,
+# so the router is in a half-updated state — must NOT reboot until
+# kernel.b is also written and verified.
+echo "Flashing /dev/ubi0_$VOL_KERNELB  (kernel.b) ..."
+if ! ubiupdatevol "/dev/ubi0_$VOL_KERNELB" "$IMAGE"; then
+    sync
+    echo "ERROR: second flash (kernel.b) FAILED."                         &gt;&amp;2
+    echo "       'kernel' was already updated. Do NOT reboot -- retry"    &gt;&amp;2
+    echo "       the flash on /dev/ubi0_$VOL_KERNELB before rebooting."   &gt;&amp;2
+    exit 1
+fi
+sync
+echo "Verifying /dev/ubi0_$VOL_KERNELB  (kernel.b) ..."
+if ! verify_volume "/dev/ubi0_$VOL_KERNELB"; then
+    sync
+    echo "ERROR: verification of 'kernel.b' FAILED -- the data read back"  &gt;&amp;2
+    echo "       does not match the image. 'kernel' is already updated, so" &gt;&amp;2
+    echo "       do NOT reboot -- re-run this script to rewrite 'kernel.b'" &gt;&amp;2
+    echo "       before rebooting."                                        &gt;&amp;2
+    exit 1
+fi
+
+sync
+echo "Done! Both kernel volumes were written and verified."
+EOF
+chmod +x er605v2_write_initramfs.sh</code></pre>
+<details>
+<summary>
+
+<span data-en="Alternative: use chill1Penguin's original script" data-es="Alternativa: usar el script original de chill1Penguin">Alternative: use chill1Penguin's original script</span>
+</summary>
+<div>
+<p data-en="If you'd rather use the upstream script verbatim — the one referenced by the rest of the chill1Penguin repo — download it directly. Functionally it does the same job; it just lacks the extra validation and the confirmation prompt." data-es="Si preferís usar el script upstream tal cual — el que referencia el resto del repo de chill1Penguin — descargalo directo. Funcionalmente hace lo mismo; solo le faltan la validación extra y la confirmación.">If you'd rather use the upstream script verbatim — the one referenced by the rest of the chill1Penguin repo — download it directly. Functionally it does the same job; it just lacks the extra validation and the confirmation prompt.</p>
+<pre><code>cd ~/er605_flash
+curl -o er605v2_write_initramfs.sh https://raw.githubusercontent.com/chill1Penguin/er605v2_openwrt_install/main/er605v2_write_initramfs.sh
+chmod +x er605v2_write_initramfs.sh</code></pre>
+<p data-en="For reference, this is the original script (~30 lines):" data-es="Para referencia, este es el script original (~30 líneas):">For reference, this is the original script (~30 lines):</p>
+<pre><code>#!/bin/sh
+
+vol_count=$(cat /sys/class/ubi/ubi0/volumes_count)
+vol_kernel=
+vol_kernelb=
+
+if [ $# -ne 1 ] ; then
+    echo "USAGE: &lt;path to openwrt-initramfs.bin&gt; EXAMPLE: ./er605v2_write_initramfs.sh openwrt-initramfs.bin"
+    exit 1
+fi
+
+i=0
+name=
+while [ $i -lt $vol_count ]; do
+    name=$(cat /sys/class/ubi/ubi0_$i/name)
+    case $name in
+      "kernel")
+         vol_kernel=$i
+         ;;
+      "kernel.b")
+         vol_kernelb=$i
+         ;;
+    esac
+    i=`expr $i + 1`
+done
+
+if [ -z $vol_kernel ] || [ -z $vol_kernelb ] ; then
+   echo "ERROR: A required UBI volume was not found."
+   exit 1
+fi
+
+echo "Found kernel ubi partitions (ubi0_$vol_kernel and ubi0_$vol_kernelb). Flashing the initramfs.bin..."
+
+ubiupdatevol /dev/ubi0_$vol_kernel $1
+ubiupdatevol /dev/ubi0_$vol_kernelb $1
+
+sync
+
+echo "Done!"</code></pre>
+<p data-en="If you take this path, the rest of the guide works identically — the file is named &lt;code&gt;er605v2_write_initramfs.sh&lt;/code&gt; in both cases, so step 8 (transfer to router) and step 10 (run the flash) don't change." data-es="Si elegís esta opción, el resto de la guía funciona igual — el archivo se llama &lt;code&gt;er605v2_write_initramfs.sh&lt;/code&gt; en ambos casos, así que el paso 8 (transferir al router) y el paso 10 (correr el flasheo) no cambian.">If you take this path, the rest of the guide works identically — the file is named <code>er605v2_write_initramfs.sh</code> in both cases, so step 8 (transfer to router) and step 10 (run the flash) don't change.</p>
+</div>
+</details>
+<p data-en="1c. Download sysupgrade image:" data-es="1c. Descargar imagen de sysupgrade:">1c. Download sysupgrade image:</p>
+<pre><code><span># Sysupgrade 25.12.4 (or newer — check downloads.openwrt.org for the latest 25.12 point release):</span>
+curl -LO https://downloads.openwrt.org/releases/25.12.4/targets/ramips/mt7621/openwrt-25.12.4-ramips-mt7621-tplink_er605-v2-squashfs-sysupgrade.bin</code></pre>
+<p data-en="1d. Verify you have everything:" data-es="1d. Verificar que tenés todo:">1d. Verify you have everything:</p>
+<pre><code>ls -la ~/er605_flash/</code></pre>
+<p data-en="You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file." data-es="Deberías ver: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, y el archivo .bin de sysupgrade.">You should see: er605v2_write_initramfs.sh, openwrt-initramfs-compact.bin, and the sysupgrade .bin file.</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="step">
+<div class="step-num">2</div>
+<div>
+<h4 data-en="Disconnect internet &amp; verify firmware" data-es="Desconectar internet y verificar firmware">Disconnect internet &amp; verify firmware</h4>
+<ol>
+<li data-en="Disconnect the WAN cable from the router" data-es="Desconectá el cable WAN del router">Disconnect the WAN cable from the router</li>
+<li data-en="Connect your PC to a LAN port via ethernet" data-es="Conectá tu PC a un puerto LAN via cable ethernet">Connect your PC to a LAN port via ethernet</li>
+<li data-en="Go to &lt;code&gt;http://192.168.0.1&lt;/code&gt; and check the &lt;strong&gt;Firmware Version&lt;/strong&gt; in System Status" data-es="Andá a &lt;code&gt;http://192.168.0.1&lt;/code&gt; y verificá la &lt;strong&gt;Firmware Version&lt;/strong&gt; en System Status">Go to <code>http://192.168.0.1</code> and check the <strong>Firmware Version</strong> in System Status</li>
+</ol>
+<p data-en="If firmware is 2.2.5 or earlier → continue. If 2.2.6+ → you're blocked." data-es="Si el firmware es 2.2.5 o anterior → continuá. Si es 2.2.6+ → estás bloqueado.">If firmware is 2.2.5 or earlier → continue. If 2.2.6+ → you're blocked.</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="step">
+<div class="step-num">3</div>
+<div>
+<h4 data-en="Enable SSH on the router" data-es="Habilitar SSH en el router">Enable SSH on the router</h4>
+<p data-en="In the web GUI: &lt;strong&gt;System Tools → Diagnostics → Remote Assistance&lt;/strong&gt; → enable it." data-es="En la GUI web: &lt;strong&gt;System Tools → Diagnostics → Remote Assistance&lt;/strong&gt; → habilitarlo.">In the web GUI: <strong>System Tools → Diagnostics → Remote Assistance</strong> → enable it.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Phase 2 -->
+<div>
+<h3 data-en="Phase 2 — SSH Access" data-es="Fase 2 — Acceso SSH">Phase 2 — SSH Access</h3>
+<div>
+<!-- Step 4 -->
+<div class="step">
+<div class="step-num">4</div>
+<div>
+<h4 data-en="Connect via SSH" data-es="Conectar via SSH">Connect via SSH</h4>
+<p data-en="The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:" data-es="El servidor SSH del ER605 usa algoritmos legacy que las distros modernas bloquean por defecto. Pasalos directamente en el comando:">The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:</p>
+<pre><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr admin@192.168.0.1</code></pre>
+<p data-en="Use your GUI username (usually admin). Password is the same as the GUI." data-es="Usá tu usuario de la GUI (generalmente admin). La contraseña es la misma de la GUI.">Use your GUI username (usually admin). Password is the same as the GUI.</p>
+<div class="callout caution" data-en="&lt;strong&gt;Note:&lt;/strong&gt; scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead." data-es="&lt;strong&gt;Nota:&lt;/strong&gt; scp no funciona con el ER605 — el shell imprime banners que corrompen la transferencia. Usá el método del servidor HTTP en el Paso 8."><strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead.</div>
+</div>
+</div>
+<!-- Step 5 -->
+<div class="step">
+<div class="step-num">5</div>
+<div>
+<h4 data-en="Enter debug mode" data-es="Entrar en modo debug">Enter debug mode</h4>
+<p data-en="Once inside SSH, run:" data-es="Una vez dentro de SSH, ejecutá:">Once inside SSH, run:</p>
+<pre><code>enable
+debug</code></pre>
+<p data-en="Paste the CLI debug mode password from Step 1. If it works, you'll have a root shell." data-es="Pegá la contraseña del modo debug CLI del Paso 1. Si funciona, vas a tener un shell root.">Paste the CLI debug mode password from Step 1. If it works, you'll have a root shell.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Phase 3 -->
+<div>
+<h3 data-en="Phase 3 — MTD Backup (strongly recommended)" data-es="Fase 3 — Backup MTD (muy recomendado)">Phase 3 — MTD Backup (strongly recommended)</h3>
+<div>
+<div class="step">
+<div class="step-num">6</div>
+<div>
+<h4 data-en="Back up all MTD partitions" data-es="Hacer backup de todas las particiones MTD">Back up all MTD partitions</h4>
+<div class="callout warn" data-en="Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this." data-es="Sin este backup, restaurar el firmware de fábrica requiere soldar una consola serial UART a la PCB. No te saltees esto.">Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this.</div>
+<details open="">
+<summary>
+
+<span data-en="Option A: Network backup with netcat (recommended)" data-es="Opción A: Backup por red con netcat (recomendado)">Option A: Network backup with netcat (recommended)</span>
+</summary>
+<div>
+<p data-en="No USB needed. Two scripts handle everything: one runs on your PC and receives the data, the other runs on the router and sends it. Partitions are streamed directly without storing anything in the router's RAM." data-es="No se necesita USB. Dos scripts se encargan de todo: uno corre en tu PC y recibe la data, el otro corre en el router y la envía. Las particiones se transmiten directamente sin guardar nada en la RAM del router.">No USB needed. Two scripts handle everything: one runs on your PC and receives the data, the other runs on the router and sends it. Partitions are streamed directly without storing anything in the router's RAM.</p>
+<p data-en="Step 1 — Find your PC's IP:" data-es="Paso 1 — Averiguá la IP de tu PC:">Step 1 — Find your PC's IP:</p>
+<pre><code>ip -4 addr show | grep "192.168.0"</code></pre>
+<p data-en="Note the IP (e.g. 192.168.0.109). You'll need it below." data-es="Anotá la IP (ej. 192.168.0.109). La vas a necesitar abajo.">Note the IP (e.g. 192.168.0.109). You'll need it below.</p>
+<!-- Sub-accordion: Our scripts -->
+<details>
+<summary>
+
+<span data-en="Method 1: Simple scripts (one partition per connection)" data-es="Método 1: Scripts simples (una partición por conexión)">Method 1: Simple scripts (one partition per connection)</span>
+</summary>
+<div>
+<p data-en="receive_backup.sh — run on your PC:" data-es="receive_backup.sh — correr en tu PC:">receive_backup.sh — run on your PC:</p>
+<pre><code>#!/bin/bash
+# receive_backup.sh — Run on your PC
+# Receives all MTD partitions from the ER605 via netcat
+
+DIR=~/er605_backup
+mkdir -p "$DIR"
+
+PARTITIONS="0:Bootloader 1:Config 2:Factory 3:firmware 4:panic-oops 5:partition-table 6:support-list 7:device-info 8:device-info.b 9:tddp 10:tddp.b 11:bootloader 12:kernel 13:rootfs 14:firmware-info 15:extra-para 16:log 17:rootfs_data 18:bootloader.b 19:kernel.b 20:rootfs.b 21:firmware-info.b 22:extra-para.b 23:log.b 24:rootfs_data.b 25:log_recovery 26:database"
+
+for PART in $PARTITIONS; do
+    NUM="${PART%%:*}"
+    NAME="${PART##*:}"
+    FILE="$DIR/mtd${NUM}_${NAME}.bin"
+    echo ""
+    echo "=== Waiting for mtd${NUM} (${NAME})... ==="
+    nc -l -p 9090 &gt; "$FILE"
+    SIZE=$(stat -c%s "$FILE" 2&gt;/dev/null || echo 0)
+    echo "    Received: $FILE ($SIZE bytes)"
+done
+
+echo ""
+echo "=== Backup complete ==="
+ls -lh "$DIR"</code></pre>
+<div class="callout caution" data-en="If &lt;code&gt;nc -l -p 9090&lt;/code&gt; gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to &lt;code&gt;nc -l 9090&lt;/code&gt; without the &lt;code&gt;-p&lt;/code&gt; flag." data-es="Si &lt;code&gt;nc -l -p 9090&lt;/code&gt; da error (común en Debian/Ubuntu con OpenBSD netcat), cambialo a &lt;code&gt;nc -l 9090&lt;/code&gt; sin el flag &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p 9090</code> gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to <code>nc -l 9090</code> without the <code>-p</code> flag.</div>
+<p data-en="send_backup.sh — run on the router:" data-es="send_backup.sh — correr en el router:">send_backup.sh — run on the router:</p>
+<pre><code>#!/bin/ash
+# send_backup.sh — Run on the ER605 router (ash/BusyBox)
+# Usage: ash send_backup.sh YOUR_PC_IP
+
+PC_IP="$1"
+
+if [ -z "$PC_IP" ]; then
+    echo "Usage: ash send_backup.sh YOUR_PC_IP"
+    exit 1
+fi
+
+i=0
+while [ -e "/dev/mtd${i}ro" ]; do
+    NAME=$(grep "mtd${i}:" /proc/mtd | cut -d'"' -f2)
+    echo ""
+    echo "=== Sending mtd${i} (${NAME})... ==="
+    dd if="/dev/mtd${i}ro" | nc "$PC_IP" 9090
+    echo "    mtd${i} sent."
+    sleep 2
+    i=$((i + 1))
+done
+
+echo ""
+echo "=== All partitions sent ==="</code></pre>
+<p data-en="How to use:" data-es="Cómo usarlo:">How to use:</p>
+<ol>
+<li data-en="Transfer &lt;code&gt;send_backup.sh&lt;/code&gt; to the router via the HTTP server: &lt;code&gt;curl -o /tmp/send_backup.sh http://YOUR_PC_IP:8080/send_backup.sh&lt;/code&gt;" data-es="Transferí &lt;code&gt;send_backup.sh&lt;/code&gt; al router via el servidor HTTP: &lt;code&gt;curl -o /tmp/send_backup.sh http://IP_DE_TU_PC:8080/send_backup.sh&lt;/code&gt;">Transfer <code>send_backup.sh</code> to the router via the HTTP server: <code>curl -o /tmp/send_backup.sh http://YOUR_PC_IP:8080/send_backup.sh</code></li>
+<li data-en="Run &lt;code&gt;./receive_backup.sh&lt;/code&gt; on your PC (it waits for each partition)" data-es="Corré &lt;code&gt;./receive_backup.sh&lt;/code&gt; en tu PC (espera cada partición)">Run <code>./receive_backup.sh</code> on your PC (it waits for each partition)</li>
+<li data-en="Run &lt;code&gt;ash /tmp/send_backup.sh YOUR_PC_IP&lt;/code&gt; on the router" data-es="Corré &lt;code&gt;ash /tmp/send_backup.sh IP_DE_TU_PC&lt;/code&gt; en el router">Run <code>ash /tmp/send_backup.sh YOUR_PC_IP</code> on the router</li>
+</ol>
+</div>
+</details>
+<!-- Sub-accordion: chill1Penguin's scripts -->
+<details>
+<summary>
+
+<span data-en="Method 2: chill1Penguin's scripts (with auto md5sum verification)" data-es="Método 2: Scripts de chill1Penguin (con verificación md5sum automática)">Method 2: chill1Penguin's scripts (with auto md5sum verification)</span>
+</summary>
+<div>
+<p data-en="backup.sh — paste and run on the router:" data-es="backup.sh — pegar y ejecutar en el router:">backup.sh — paste and run on the router:</p>
+<p data-en="Edit &lt;code&gt;BACKUP_HOST&lt;/code&gt; to match your PC's IP, then paste this entire block into the router's shell:" data-es="Editá &lt;code&gt;BACKUP_HOST&lt;/code&gt; con la IP de tu PC, después pegá todo este bloque en el shell del router:">Edit <code>BACKUP_HOST</code> to match your PC's IP, then paste this entire block into the router's shell:</p>
+<pre><code>cat &lt;&lt; "EOF" &gt; /tmp/backup.sh
+#!/bin/sh
+
+BACKUP_HOST="192.168.0.100"  # Your PC's IP address
+BACKUP_PORT="9999"            # Port to use for transfer
+echo "Backup host ${BACKUP_HOST}"
+
+echo -n &gt; /tmp/md5sums
+
+cat /proc/mtd | tail -n+2 | while read; do
+  MTD_DEV=$(echo ${REPLY} | cut -f1 -d:)
+  MTD_NAME=$(echo ${REPLY} | cut -f2 -d\")
+  FILENAME="${MTD_DEV}_${MTD_NAME}.backup"
+
+  echo "Backing up ${MTD_DEV} (${MTD_NAME})"
+  # First send filename
+  echo "$FILENAME" | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+  sleep 1
+  # Then send the data
+  dd if=/dev/${MTD_DEV}ro | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+  SUM=$(dd if=/dev/${MTD_DEV}ro | md5sum | cut -f1 -d" ")
+  echo -e "$SUM\t$FILENAME" &gt;&gt; /tmp/md5sums
+  sleep 1
+done
+
+echo md5sums | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+dd if=/tmp/md5sums | busybox nc ${BACKUP_HOST} ${BACKUP_PORT}
+
+EOF
+
+chmod +x /tmp/backup.sh</code></pre>
+<p data-en="receive.sh — save and run on your PC:" data-es="receive.sh — guardar y ejecutar en tu PC:">receive.sh — save and run on your PC:</p>
+<pre><code>#!/bin/bash
+# receive.sh — Run on your PC
+# Receives MTD backups sent by backup.sh from the router
+
+PORT=9999
+DIR=~/er605_backup
+mkdir -p "$DIR"
+cd "$DIR"
+
+while true; do
+  # Receive filename
+  FILENAME=$(nc -l -p $PORT)
+  FILENAME=$(echo "$FILENAME" | tr -d '\r\n')
+  if [ -z "$FILENAME" ]; then continue; fi
+  echo "Receiving ${FILENAME}..."
+  # Receive file data
+  nc -l -p $PORT &gt; "$FILENAME"
+done</code></pre>
+<div class="callout caution" data-en="If &lt;code&gt;nc -l -p&lt;/code&gt; gives an error, change to &lt;code&gt;nc -l&lt;/code&gt; without &lt;code&gt;-p&lt;/code&gt;." data-es="Si &lt;code&gt;nc -l -p&lt;/code&gt; da error, cambialo a &lt;code&gt;nc -l&lt;/code&gt; sin &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p</code> gives an error, change to <code>nc -l</code> without <code>-p</code>.</div>
+<p data-en="How to use:" data-es="Cómo usarlo:">How to use:</p>
+<ol>
+<li data-en="Run &lt;code&gt;./receive.sh&lt;/code&gt; on your PC" data-es="Corré &lt;code&gt;./receive.sh&lt;/code&gt; en tu PC">Run <code>./receive.sh</code> on your PC</li>
+<li data-en="Run &lt;code&gt;/tmp/backup.sh&lt;/code&gt; on the router" data-es="Corré &lt;code&gt;/tmp/backup.sh&lt;/code&gt; en el router">Run <code>/tmp/backup.sh</code> on the router</li>
+<li data-en="Backup takes ~5 minutes. Don't interrupt it." data-es="El backup tarda ~5 minutos. No lo interrumpas.">Backup takes ~5 minutes. Don't interrupt it.</li>
+<li data-en="When done, press Ctrl+C on the PC to stop receive.sh" data-es="Cuando termine, presioná Ctrl+C en la PC para parar receive.sh">When done, press Ctrl+C on the PC to stop receive.sh</li>
+<li data-en="Verify: &lt;code&gt;md5sum -c md5sums&lt;/code&gt;" data-es="Verificar: &lt;code&gt;md5sum -c md5sums&lt;/code&gt;">Verify: <code>md5sum -c md5sums</code></li>
+</ol>
+</div>
+</details>
+<p data-en="&lt;strong&gt;Tip:&lt;/strong&gt; mtd3 (firmware) is the largest (~130MB) and takes ~2 minutes. The rest are small and take seconds. Store these backups somewhere safe — they're your only way back to stock firmware without a serial console." data-es="&lt;strong&gt;Tip:&lt;/strong&gt; mtd3 (firmware) es la más grande (~130MB) y tarda ~2 minutos. El resto son chicas y tardan segundos. Guardá estos backups en un lugar seguro — son tu único camino de vuelta al firmware de fábrica sin una consola serial."><strong>Tip:</strong> mtd3 (firmware) is the largest (~130MB) and takes ~2 minutes. The rest are small and take seconds. Store these backups somewhere safe — they're your only way back to stock firmware without a serial console.</p>
+<p data-en='Original scripts from &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;chill1Penguin/MTD_backup&lt;/a&gt;.' data-es='Scripts originales de &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;chill1Penguin/MTD_backup&lt;/a&gt;.'>Original scripts from <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md">chill1Penguin/MTD_backup</a>.</p>
+</div>
+</details>
+<details>
+<summary>
+
+<span data-en="Option B: USB backup" data-es="Opción B: Backup a USB">Option B: USB backup</span>
+</summary>
+<div>
+<p data-en="Format a 256MB+ USB drive as FAT32, plug it into the router, mount it, and dump all partitions." data-es="Formateá un pendrive de 256MB+ como FAT32, conectalo al router, montalo, y hacé un dump de todas las particiones.">Format a 256MB+ USB drive as FAT32, plug it into the router, mount it, and dump all partitions.</p>
+<pre><code>i=0; while [ -e "/dev/mtd${i}ro" ]; do
+    NAME=$(grep "mtd${i}:" /proc/mtd | cut -d'"' -f2)
+    echo "Backing up mtd${i} (${NAME})..."
+    dd if="/dev/mtd${i}ro" of="/mnt/usb/mtd${i}_${NAME}.bin"
+    i=$((i + 1))
+done
+cp /proc/mtd /mnt/usb/proc_mtd.txt
+sync &amp;&amp; umount /mnt/usb</code></pre>
+</div>
+</details>
+</div>
+</div>
+</div>
+</div>
+<!-- Phase 4 -->
+<div>
+<h3 data-en="Phase 4 — Transfer files to the router" data-es="Fase 4 — Transferir archivos al router">Phase 4 — Transfer files to the router</h3>
+<div>
+<div class="step">
+<div class="step-num">7</div>
+<div>
+<h4 data-en="Start a temporary HTTP server on your PC" data-es="Iniciar un servidor HTTP temporal en tu PC">Start a temporary HTTP server on your PC</h4>
+<pre><code>cd ~/er605_flash
+python3 -m http.server 8080</code></pre>
+<div class="callout caution" data-en="&lt;strong&gt;Firewall:&lt;/strong&gt; If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;." data-es="&lt;strong&gt;Firewall:&lt;/strong&gt; Si curl da timeout en el siguiente paso, el firewall de tu PC puede estar bloqueando el puerto 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;."><strong>Firewall:</strong> If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>.</div>
+</div>
+</div>
+<div class="step">
+<div class="step-num">8</div>
+<div>
+<h4 data-en="Download files from the router" data-es="Descargar archivos desde el router">Download files from the router</h4>
+<pre><code>cd /tmp
+curl -o er605v2_write_initramfs.sh http://YOUR_PC_IP:8080/er605v2_write_initramfs.sh
+curl -o openwrt-initramfs-compact.bin http://YOUR_PC_IP:8080/openwrt-initramfs-compact.bin
+chmod +x er605v2_write_initramfs.sh</code></pre>
+</div>
+</div>
+<div class="step">
+<div class="step-num">9</div>
+<div>
+<h4 data-en="Verify checksum" data-es="Verificar checksum">Verify checksum</h4>
+<pre><code>md5sum openwrt-initramfs-compact.bin</code></pre>
+<p data-en="The output must match:" data-es="La salida debe coincidir con:">The output must match:</p>
+<div>
+<code>e06dd6da68b739b2544931a0203292db  openwrt-initramfs-compact.bin</code>
+
+</div>
+<p data-en="Source: &lt;a href=&quot;https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums&quot;&gt;chill1Penguin/md5sums&lt;/a&gt;. If they don't match, do NOT continue." data-es='Fuente: &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums"&gt;chill1Penguin/md5sums&lt;/a&gt;. Si no coinciden, NO continúes.'>Source: <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/md5sums">chill1Penguin/md5sums</a>. If they don't match, do NOT continue.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Phase 5 -->
+<div>
+<h3 data-en="Phase 5 — Flashing (point of no return)" data-es="Fase 5 — Flasheo (punto de no retorno)">Phase 5 — Flashing (point of no return)</h3>
+<div>
+<div class="step">
+<div class="step-num">10</div>
+<div>
+<h4 data-en="Flash the initramfs image" data-es="Flashear la imagen initramfs">Flash the initramfs image</h4>
+<div class="callout warn" data-en="Do NOT unplug or power off during this step. A power loss here bricks the router." data-es="NO desconectar ni apagar durante este paso. Un corte de energía aquí brickea el router.">Do NOT unplug or power off during this step. A power loss here bricks the router.</div>
+<pre><code>./er605v2_write_initramfs.sh openwrt-initramfs-compact.bin</code></pre>
+<p data-en="If you used the safer version (recommended), it will print a summary (image, size, target partitions) and ask you to type &lt;code&gt;yes&lt;/code&gt; before flashing. The original chill1Penguin script flashes immediately without asking." data-es="Si usaste la versión más segura (recomendada), va a imprimir un resumen (imagen, tamaño, particiones de destino) y va a pedirte que escribas &lt;code&gt;yes&lt;/code&gt; antes de flashear. El script original de chill1Penguin flashea de una sin preguntar.">If you used the safer version (recommended), it will print a summary (image, size, target partitions) and ask you to type <code>yes</code> before flashing. The original chill1Penguin script flashes immediately without asking.</p>
+</div>
+</div>
+<div class="step">
+<div class="step-num">11</div>
+<div>
+<h4 data-en="Reboot" data-es="Reiniciar">Reboot</h4>
+<pre><code>reboot</code></pre>
+<p data-en="Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal." data-es="Esperá 2–3 minutos. Todos los LEDs se van a apagar, después van a parpadear, y después se van a estabilizar. Esto es normal.">Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal.</p>
+<pre><code><span># Monitor from your PC:</span>
+while ! ping -c1 -W1 192.168.1.1 &amp;&gt;/dev/null; do echo "Waiting..."; sleep 2; done; echo "Router is up!"</code></pre>
+</div>
+</div>
+</div>
+</div>
+<!-- Phase 6 -->
+<div>
+<h3 data-en="Phase 6 — OpenWrt Setup" data-es="Fase 6 — Configuración de OpenWrt">Phase 6 — OpenWrt Setup</h3>
+<div>
+<div class="step">
+<div class="step-num">12</div>
+<div>
+<h4 data-en="Access the installer" data-es="Acceder al instalador">Access the installer</h4>
+<p data-en='Open &lt;code&gt;http://192.168.1.1&lt;/code&gt; — note the IP changed from 192.168.&lt;strong&gt;0&lt;/strong&gt;.1 to 192.168.&lt;strong&gt;1&lt;/strong&gt;.1. You should see the "ER605 v2 Installer" page.' data-es='Abrí &lt;code&gt;http://192.168.1.1&lt;/code&gt; — notá que la IP cambió de 192.168.&lt;strong&gt;0&lt;/strong&gt;.1 a 192.168.&lt;strong&gt;1&lt;/strong&gt;.1. Deberías ver la página "ER605 v2 Installer".'>Open <code>http://192.168.1.1</code> — note the IP changed from 192.168.<strong>0</strong>.1 to 192.168.<strong>1</strong>.1. You should see the "ER605 v2 Installer" page.</p>
+<div class="callout caution" data-en="&lt;strong&gt;If it doesn't load:&lt;/strong&gt; disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE&lt;/code&gt;." data-es="&lt;strong&gt;Si no carga:&lt;/strong&gt; desconectá el WiFi de tu PC, esperá más, reconectá el cable ethernet, o probá una IP estática: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev TU_INTERFAZ&lt;/code&gt;."><strong>If it doesn't load:</strong> disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: <code>sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE</code>.</div>
+</div>
+</div>
+<div class="step">
+<div class="step-num">13</div>
+<div>
+<h4 data-en="Adjust UBI layout &amp; flash sysupgrade 25.12.4" data-es="Ajustar UBI layout y flashear sysupgrade 25.12.4">Adjust UBI layout &amp; flash sysupgrade 25.12.4</h4>
+<ol>
+<li data-en='Click &lt;strong&gt;"Adjust UBI Layout"&lt;/strong&gt; if it says "NOT ADJUSTED"' data-es='Hacé click en &lt;strong&gt;"Adjust UBI Layout"&lt;/strong&gt; si dice "NOT ADJUSTED"'>Click <strong>"Adjust UBI Layout"</strong> if it says "NOT ADJUSTED"</li>
+<li data-en='Upload the &lt;strong&gt;25.12.4&lt;/strong&gt; sysupgrade image, &lt;strong&gt;uncheck "Keep settings"&lt;/strong&gt;, and click &lt;strong&gt;Flash&lt;/strong&gt;' data-es='Subí la imagen sysupgrade &lt;strong&gt;25.12.4&lt;/strong&gt;, &lt;strong&gt;desmarcá "Keep settings"&lt;/strong&gt;, y hacé click en &lt;strong&gt;Flash&lt;/strong&gt;'>Upload the <strong>25.12.4</strong> sysupgrade image, <strong>uncheck "Keep settings"</strong>, and click <strong>Flash</strong></li>
+<li data-en="Wait several minutes — do NOT power off the router" data-es="Esperá varios minutos — NO apagues el router">Wait several minutes — do NOT power off the router</li>
+<li data-en="After reboot, access &lt;code&gt;http://192.168.1.1&lt;/code&gt; → you should see &lt;strong&gt;LuCI&lt;/strong&gt;. Login: &lt;strong&gt;root&lt;/strong&gt;, password: &lt;em&gt;empty&lt;/em&gt;." data-es="Después del reinicio, accedé a &lt;code&gt;http://192.168.1.1&lt;/code&gt; → deberías ver &lt;strong&gt;LuCI&lt;/strong&gt;. Login: &lt;strong&gt;root&lt;/strong&gt;, contraseña: &lt;em&gt;vacía&lt;/em&gt;.">After reboot, access <code>http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>.</li>
+</ol>
+<div class="callout caution" data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es='Si ves "Image check failed" en rojo, es porque "Keep settings" está marcado. Desmarcalo y el error desaparece. NO uses "Force upgrade".'>If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="troubleshooting">
+<h2 data-en="Troubleshooting" data-es="Solución de problemas">Troubleshooting</h2>
+<div>
+<details>
+<summary>
+
+<span data-en="SSH: Connection refused" data-es="SSH: Conexión rechazada">SSH: Connection refused</span>
+</summary>
+<div data-en="Verify Remote Assistance is enabled. Check your PC has an IP in the 192.168.0.x range. Try restarting the router and waiting 1 minute." data-es="Verificá que Remote Assistance esté habilitado. Verificá que tu PC tiene una IP en el rango 192.168.0.x. Intentá reiniciar el router y esperar 1 minuto.">Verify Remote Assistance is enabled. Check your PC has an IP in the 192.168.0.x range. Try restarting the router and waiting 1 minute.</div>
+</details>
+<details>
+<summary>
+
+<span>SSH: "REMOTE HOST IDENTIFICATION HAS CHANGED"</span>
+</summary>
+<div>
+<p data-en="Expected after flashing — the SSH server changed. Remove the old key:" data-es="Esperado después del flasheo — el servidor SSH cambió. Borrá la clave vieja:">Expected after flashing — the SSH server changed. Remove the old key:</p>
+<pre><code>ssh-keygen -R 192.168.0.1
+ssh-keygen -R 192.168.1.1</code></pre>
+</div>
+</details>
+<details>
+<summary>
+
+<span>SSH: "no matching host key / cipher / kex"</span>
+</summary>
+<div>
+<p data-en="Use the full command with legacy algorithm flags:" data-es="Usá el comando completo con las flags de algoritmos legacy:">Use the full command with legacy algorithm flags:</p>
+<pre><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr root@192.168.1.1</code></pre>
+</div>
+</details>
+
+
+
+
+<details>
+<summary>
+
+<span data-en="Credentials don't work after downgrade/rollback" data-es="Las credenciales no funcionan después de downgrade/rollback">Credentials don't work after downgrade/rollback</span>
+</summary>
+<div data-en="Do a hardware factory reset: hold the RESET button with a pin for 10 seconds. The router will ask you to create new credentials. Do not guess — you'll get locked out." data-es="Hacé un factory reset por hardware: mantené el botón RESET presionado con un alfiler por 10 segundos. El router te va a pedir crear nuevas credenciales. No intentes adivinar — te bloquea.">Do a hardware factory reset: hold the RESET button with a pin for 10 seconds. The router will ask you to create new credentials. Do not guess — you'll get locked out.</div>
+</details>
+</div>
+</section>
+
+<section id="revert">
+<h2 data-en="Revert to Stock Firmware" data-es="Volver al firmware de fábrica">Revert to Stock Firmware</h2>
+<div class="callout warn" data-en='&lt;strong&gt;The restore command depends on how your backup was made.&lt;/strong&gt; Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;MTD backup documentation&lt;/a&gt; before restoring.' data-es='&lt;strong&gt;El comando de restauración depende de cómo se hizo tu backup.&lt;/strong&gt; Usar el comando incorrecto (ubiformat vs mtd write) puede destruir la tabla de bloques malos de la NAND y brickear el router permanentemente. Consultá la &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;documentación del backup MTD&lt;/a&gt; antes de restaurar.'><strong>The restore command depends on how your backup was made.</strong> Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md">MTD backup documentation</a> before restoring.</div>
+
+
+
+
+</section>
+<h2 class="part-label" data-en="<span class='part-tag'>Part 2</span><br>Minimal configuration via the GUI (LuCI)" data-es="<span class='part-tag'>Parte 2</span><br>Configuración mínima por GUI (LuCI)"><span class="part-tag">Part 2</span><br>Minimal configuration via the GUI (LuCI)</h2>
+<p class="lead" data-en="With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI." data-es="Ya con OpenWrt corriendo y LuCI en <code>http://192.168.1.1</code>, esto es lo único que toco. Todo lo que no nombro queda bien por default. Nada de SSH: todo por la web.">With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI.</p>
+<section id="cfg-password">
+<h3 data-en="1. Password" data-es="1. Contraseña">1. Password</h3><p data-en="Log in to LuCI as <code>root</code> and change the router password." data-es="Entrá a LuCI como <code>root</code> y cambiá la contraseña del router.">Log in to LuCI as <code>root</code> and change the router password.</p>
+</section>
+<section id="cfg-firmware">
+<h3 data-en="2. Firmware online checking → off" data-es="2. Firmware online checking → off">2. Firmware online checking → off</h3><p data-en="Turn off the online firmware check." data-es="Desactivá el chequeo de firmware online.">Turn off the online firmware check.</p>
+</section>
+<section id="cfg-wan-drop">
+<h3 data-en="3. Firewall: WAN → DROP" data-es="3. Firewall: WAN en DROP">3. Firewall: WAN → DROP</h3><p data-en="<strong>Network → Firewall → Zones</strong> → the <code>wan</code> zone → <strong>Input: drop</strong> (it ships as <code>reject</code>)." data-es="<strong>Network → Firewall → Zones</strong> → zona <code>wan</code> → <strong>Input: drop</strong> (venía en <code>reject</code>)."><strong>Network → Firewall → Zones</strong> → the <code>wan</code> zone → <strong>Input: drop</strong> (it ships as <code>reject</code>).</p>
+</section>
+<section id="cfg-ping">
+<h3 data-en="4. Kill the ping" data-es="4. Matar el ping">4. Kill the ping</h3><p data-en="<strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → disable." data-es="<strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → deshabilitar."><strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → disable.</p>
+</section>
+<section id="cfg-ipv6">
+<h3 data-en="5. Disable IPv6" data-es="5. Desactivar IPv6">5. Disable IPv6</h3><p data-en="We won't use IPv6, so remove it in two places." data-es="No vamos a usar IPv6, así que lo sacamos en dos lugares.">We won't use IPv6, so remove it in two places.</p><h4 data-en="Remove the WAN IPv6 interface" data-es="Sacar la interfaz IPv6 del WAN">Remove the WAN IPv6 interface</h4><p data-en="<strong>Network → Interfaces</strong> → delete the <code>wan6</code> interface (the IPv6 one on WAN). We don't use it." data-es="<strong>Network → Interfaces</strong> → borrá la interfaz <code>wan6</code> (la de IPv6 sobre el WAN). No la usamos."><strong>Network → Interfaces</strong> → delete the <code>wan6</code> interface (the IPv6 one on WAN). We don't use it.</p><h4 data-en="Turn off IPv6 on the LAN" data-es="Apagar IPv6 en la LAN">Turn off IPv6 on the LAN</h4><p data-en="<strong>Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings</strong>:" data-es="<strong>Network → Interfaces → LAN → Editar → DHCP Server → pestaña IPv6 Settings</strong>:"><strong>Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings</strong>:</p><pre><code>RA-Service        disabled
+DHCPv6-Service    disabled</code></pre>
+<div class="callout info"><p data-en="With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only." data-es="Con <code>wan6</code> borrada y RA / DHCPv6 deshabilitados, la LAN deja de repartir direcciones IPv6 y el router queda solo IPv4.">With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only.</p></div>
+</section>
+<section id="cfg-doh">
+<h3 data-en="6. DNS over HTTPS" data-es="6. DNS over HTTPS">6. DNS over HTTPS</h3><p data-en="<strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare." data-es="<strong>System → Software → Update lists</strong> → instalar <code>luci-app-https-dns-proxy</code>. Con instalarlo ya queda andando: el DNS del router sale cifrado a Cloudflare."><strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare.</p>
+</section>
+<section id="cfg-adblock">
+<h3 data-en="7. AdBlock" data-es="7. AdBlock">7. AdBlock</h3><p data-en="Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list)." data-es="Instalar <code>luci-app-adblock-fast</code> → activar el servicio → elegir <strong>Hagezi Pro</strong> (primero de la lista).">Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list).</p><div class="callout info"><p data-en="To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>." data-es="Para que adblock-fast vaya más rápido, instalá también estos paquetes desde <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> y <code>coreutils-sort</code>.">To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>.</p></div>
+</section>
+<section id="cfg-ddns">
+<h3 data-en="8. DDNS <small>— needed by WireGuard</small>" data-es="8. DDNS <small>— lo necesita WireGuard</small>">8. DDNS <small>— needed by WireGuard</small></h3><p data-en="Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:" data-es="Instalar <code>luci-app-ddns</code>. En <strong>Services → Dynamic DNS</strong>:">Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:</p><pre><code>name              myddns
+service provider  duckdns.org
+lookup hostname   YOURNAME.duckdns.org
+domain            YOURNAME
+username          YOURNAME.duckdns.org
+password          &lt;your duckdns token&gt;
+HTTPS             on</code></pre>
+<p data-en="Pick <code>duckdns.org</code> from the provider list (don't use <em>custom</em>). In <strong>domain</strong> put just your subdomain. LuCI won't accept an empty <strong>username</strong>, so repeat the hostname — duckdns ignores it." data-es="Elegí <code>duckdns.org</code> de la lista de proveedores (no uses <em>custom</em>). En <strong>domain</strong> va solo tu subdominio. LuCI no deja vacío el <strong>username</strong>, así que repetí el hostname — duckdns lo ignora.">Pick <code>duckdns.org</code> from the provider list (don't use <em>custom</em>). In <strong>domain</strong> put just your subdomain. LuCI won't accept an empty <strong>username</strong>, so repeat the hostname — duckdns ignores it.</p>
+</section>
+<section id="cfg-wireguard">
+<h3 data-en="9. WireGuard" data-es="9. WireGuard">9. WireGuard</h3><p data-en="Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:" data-es="Instalar <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:">Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:</p><pre><code>Name         wg0
+Protocol     WireGuard VPN
+Listen Port  53320
+IP address   10.8.0.1/24</code></pre>
+<p data-en="Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works." data-es="Tocá <strong>Generate a new key pair</strong> para wg0 una sola vez (acá nada más, nunca más). <code>53320</code> es un ejemplo — sirve cualquier puerto UDP libre.">Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works.</p><h4 data-en="Traffic Rule — DNS for the peers" data-es="Traffic Rule — DNS para los peers">Traffic Rule — DNS for the peers</h4><pre><code>name         Allow-VPN-DNS
+source       vpn
+destination  Device (input)
+protocol     TCP + UDP
+port         53</code></pre>
+<h4 data-en="Traffic Rule — open the WG port from outside" data-es="Traffic Rule — abrir el puerto WG desde afuera">Traffic Rule — open the WG port from outside</h4><pre><code>name         Allow-WireGuard
+source       wan
+destination  Device (input)
+protocol     UDP
+port         53320</code></pre>
+<h4 data-en="The <code>vpn</code> zone" data-es="Zona <code>vpn</code>">The <code>vpn</code> zone</h4><p data-en="<strong>Firewall → Zones</strong>. Peers reach the internet but can't see the LAN:" data-es="<strong>Firewall → Zones</strong>. Los peers salen a internet pero no ven la LAN:"><strong>Firewall → Zones</strong>. Peers reach the internet but can't see the LAN:</p><pre><code>name                       vpn
+input                      drop
+output                     accept
+intra-zone forward         reject
+ipv4 masquerading          on
+mss clamping               on
+covered networks           wg0
+allow forward to dest      wan
+allow forward from source  (empty)</code></pre>
+<h4 data-en="Peer <small>— one per device</small>" data-es="Peer <small>— uno por dispositivo</small>">Peer <small>— one per device</small></h4><pre><code>name                   phone1
+Allowed IPs            10.8.0.2/32
+endpoint host          (empty)
+endpoint port          (empty)
+Persistent Keep Alive  25</code></pre>
+<p data-en="Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app." data-es="Generá key pair <em>y</em> preshared key <strong>solo del peer</strong> (no del wg0). El siguiente dispositivo es <code>10.8.0.3/32</code> — siempre <code>/32</code>. El Keep Alive <code>25</code> sale en el QR, así no tocás la app del celu.">Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app.</p><h4 data-en="Generate configuration → QR" data-es="Generate configuration → QR">Generate configuration → QR</h4><p data-en="Scan the QR with the phone app. Mind the DNS:" data-es="Escaneá el QR con la app del celu. Ojo el DNS:">Scan the QR with the phone app. Mind the DNS:</p><pre><code>DNS Servers   10.8.0.1</code></pre>
+<p data-en="Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>." data-es="Usá <code>10.8.0.1</code> (la IP del túnel) para el DNS, <strong>no</strong> <code>192.168.1.1</code>.">Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>.</p>
+</section>
+<section id="cfg-ntp">
+<h3 data-en="10. NTP with NTS" data-es="10. NTP con NTS">10. NTP with NTS</h3><p data-en="Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:" data-es="Instalá <code>luci-app-chrony</code> y <code>chrony-nts</code>. Armá un server:">Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:</p><pre><code>server   time.cloudflare.com
+iburst   on
+nts      on</code></pre>
+<p data-en="Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>." data-es="Borrá el <code>pool</code> default. Después andá a <strong>System → Startup</strong> y deshabilitá <code>sysntpd</code>.">Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>.</p>
+</section>
+
+<footer>
+<p data-en="Flashing part based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>chill1Penguin's method</a> (password generator, backup scripts and initramfs image). The generator runs 100% in your browser: nothing is sent to any server. GUI configuration is my own. Licensed under <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>." data-es="Parte de flasheo basada en el <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>método de chill1Penguin</a> (generador de contraseñas, scripts de backup e imagen initramfs). El generador corre 100% en tu navegador: nada se envía a ningún servidor. La configuración por GUI es propia. Licencia <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>.">Flashing part based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>chill1Penguin's method</a> (password generator, backup scripts and initramfs image). The generator runs 100% in your browser: nothing is sent to any server. GUI configuration is my own. Licensed under <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>.</p>
+</footer>
+
+</main>
+
+<script>
+// ===== LANGUAGE TOGGLE (EN default, ES second) =====
+var currentLang = 'en';
+try { currentLang = localStorage.getItem('er605-lang') || 'en'; } catch (e) {}
+
+function setLang(lang){
+  currentLang = lang;
+  try { localStorage.setItem('er605-lang', lang); } catch (e) {}
+  document.documentElement.lang = lang;
+  var btn = document.getElementById('langToggle');
+  if (btn) btn.textContent = (lang === 'en') ? 'Español' : 'English';
+  document.querySelectorAll('[data-en]').forEach(function(el){
+    var text = el.getAttribute('data-' + lang);
+    if (text !== null) el.innerHTML = text;
+  });
+  document.querySelectorAll('.cp-label').forEach(function(el){
+    el.textContent = (lang === 'es') ? 'Copiar' : 'Copy';
+  });
+}
+function toggleLang(){ setLang(currentLang === 'en' ? 'es' : 'en'); }
+
+// ===== PASSWORD GENERATOR (runs entirely in the browser) =====
+function normalizeMac(input){
+  var hex = input.replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+  if (hex.length !== 12) return null;
+  return hex.match(/.{2}/g).join(':');
+}
+function generatePasswords(){
+  var raw = document.getElementById('macAddr').value.trim();
+  var username = document.getElementById('uname').value.trim();
+  var mac = normalizeMac(raw);
+  var macInput = document.getElementById('macAddr');
+  var macErr = document.getElementById('macErr');
+  var results = document.getElementById('pwResults');
+  if (raw.length > 0 && !mac){
+    macInput.setAttribute('aria-invalid', 'true');
+    macErr.classList.remove('hidden');
+    results.classList.add('hidden');
+    return;
+  }
+  macInput.removeAttribute('aria-invalid');
+  macErr.classList.add('hidden');
+  if (!mac || !raw.length){ results.classList.add('hidden'); return; }
+  results.classList.remove('hidden');
+  document.getElementById('pwRoot').textContent  = (username.length > 0) ? md5(mac + username).slice(0,16) : '—';
+  document.getElementById('pwCli212').textContent = md5(mac + 'admin').slice(0,16);
+  document.getElementById('pwCli222').textContent = md5(mac + 'admin' + mac + 'admin').slice(0,16);
+}
+function copyText(id, btn){
+  var text = document.getElementById(id).textContent;
+  if (text === '—') return;
+  var label = btn.querySelector('span') || btn;
+  var resting = (currentLang === 'es') ? 'Copiar' : 'Copy';
+  var ok = (currentLang === 'es') ? '¡Copiado!' : 'Copied!';
+  var manual = (currentLang === 'es') ? 'Copiá manual' : 'Copy manually';
+  navigator.clipboard.writeText(text).then(function(){
+    label.textContent = ok;
+    setTimeout(function(){ label.textContent = resting; }, 1500);
+  }).catch(function(){
+    label.textContent = manual;
+    setTimeout(function(){ label.textContent = resting; }, 2000);
+  });
+}
+
+// aplicar idioma guardado al cargar
+setLang(currentLang);
+</script>
+</body>
+</html>
