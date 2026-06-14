@@ -104,7 +104,7 @@ With OpenWrt up and LuCI at `http://192.168.1.1`. **Everything here is done in t
 2. **Firmware online checking → off.**
 3. **Firewall: WAN → DROP** — Network → Firewall → Zones → the `wan` zone → **Input: drop** (it ships as `reject`).
 4. **Kill the ping** — Network → Firewall → Traffic Rules → **Allow-Ping** → disable.
-5. **Software flow offloading** — this one is **not** a traffic rule, it's a single checkbox: **Network → Firewall → General Settings** → under **Routing/NAT Offloading** tick **Software flow offloading**. It puts established connections on a kernel fastpath — on the MT7621 it's roughly the difference between ~300 Mbps and near-gigabit routing.
+5. **Hardware flow offloading** — this one is **not** a traffic rule, it's a single checkbox: **Network → Firewall → General Settings** → under **Routing/NAT Offloading** tick **Software flow offloading** and then **Hardware flow offloading** (the hardware option only unlocks once software is on). Software offloading puts established connections on a kernel fastpath but the CPU still moves the packets; hardware offloading hands them to the MT7621's packet engine (PPE) instead — same throughput, far less CPU. On this router both reach ~600 Mbps (vs ~100 with no offloading), so hardware wins on efficiency. Caveats, neither relevant here: it doesn't accelerate WireGuard (the CPU still encrypts the tunnel) and it's incompatible with SQM/QoS.
 6. **Disable IPv6** — we don't use it, so remove it in two places:
    - **Network → Interfaces** → delete the `wan6` interface (the IPv6 one on WAN).
    - **Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings**: set `RA-Service` to `disabled` and `DHCPv6-Service` to `disabled`. The LAN stops handing out IPv6 and the router runs IPv4-only.
