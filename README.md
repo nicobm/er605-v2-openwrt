@@ -104,12 +104,13 @@ With OpenWrt up and LuCI at `http://192.168.1.1`. **Everything here is done in t
 2. **Firmware online checking → off.**
 3. **Firewall: WAN → DROP** — Network → Firewall → Zones → the `wan` zone → **Input: drop** (it ships as `reject`).
 4. **Kill the ping** — Network → Firewall → Traffic Rules → **Allow-Ping** → disable.
-5. **Disable IPv6** — we don't use it, so remove it in two places:
+5. **Software flow offloading** — this one is **not** a traffic rule, it's a single checkbox: **Network → Firewall → General Settings** → under **Routing/NAT Offloading** tick **Software flow offloading**. It puts established connections on a kernel fastpath — on the MT7621 it's roughly the difference between ~300 Mbps and near-gigabit routing.
+6. **Disable IPv6** — we don't use it, so remove it in two places:
    - **Network → Interfaces** → delete the `wan6` interface (the IPv6 one on WAN).
    - **Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings**: set `RA-Service` to `disabled` and `DHCPv6-Service` to `disabled`. The LAN stops handing out IPv6 and the router runs IPv4-only.
-6. **DNS over HTTPS** — in **System → Software**, install `luci-app-https-dns-proxy`. Installing it is enough (the router's DNS now leaves encrypted to Cloudflare).
-7. **AdBlock** — install `luci-app-adblock-fast` → enable the service → pick **Hagezi Pro**. To make it run faster, also install these packages from **System → Software**: `gawk`, `grep`, `sed` and `coreutils-sort`.
-8. **DDNS** (needed by WireGuard) — install `luci-app-ddns`. In Services → Dynamic DNS:
+7. **DNS over HTTPS** — in **System → Software**, install `luci-app-https-dns-proxy`. Installing it is enough (the router's DNS now leaves encrypted to Cloudflare). **Then make it exclusive:** by default the WAN still injects your ISP's plaintext DNS, so some queries leak unencrypted. Go to **Network → Interfaces → WAN → Edit → Advanced Settings** and untick **Use DNS servers advertised by peer**. Now the router only forwards to the encrypted proxy.
+8. **AdBlock** — install `luci-app-adblock-fast` → enable the service → pick **Hagezi Pro**. To make it run faster, also install these packages from **System → Software**: `gawk`, `grep`, `sed` and `coreutils-sort`.
+9. **DDNS** (needed by WireGuard) — install `luci-app-ddns`. In Services → Dynamic DNS:
 
    ```
    name              myddns
@@ -121,7 +122,7 @@ With OpenWrt up and LuCI at `http://192.168.1.1`. **Everything here is done in t
    HTTPS             on
    ```
 
-9. **WireGuard** — install `luci-proto-wireguard`. Network → Interfaces → Add:
+10. **WireGuard** — install `luci-proto-wireguard`. Network → Interfaces → Add:
 
    ```
    Name wg0 · Protocol WireGuard VPN · Generate a new key pair (only this once)
@@ -134,7 +135,7 @@ With OpenWrt up and LuCI at `http://192.168.1.1`. **Everything here is done in t
    - **Peer** (one per device): generate key pair + preshared key **for the peer only**, Allowed IPs `10.8.0.2/32` (next one `10.8.0.3/32`, always `/32`), endpoint host/port empty, Persistent Keep Alive `25`.
    - **Generate configuration → QR.** In the phone app, **DNS Servers `10.8.0.1`** (the tunnel IP, **not** `192.168.1.1`).
 
-10. **NTP with NTS** — install `luci-app-chrony` and `chrony-nts`. Build a server `time.cloudflare.com` with `iburst` and `nts` on, delete the default `pool`, and in System → Startup disable `sysntpd`.
+11. **NTP with NTS** — install `luci-app-chrony` and `chrony-nts`. Build a server `time.cloudflare.com` with `iburst` and `nts` on, delete the default `pool`, and in System → Startup disable `sysntpd`.
 
 ---
 
