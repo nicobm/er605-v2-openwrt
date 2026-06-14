@@ -301,7 +301,10 @@ curl -o openwrt-initramfs-compact.bin https://raw.githubusercontent.com/chill1Pe
 #     byte-for-byte against the image (cmp). The kernel volumes are
 #     static UBI volumes, so a successful read-back also re-checks UBI's
 #     own CRC-32. A flash that "succeeded" but didn't land correctly is
-#     caught here instead of at the next boot.
+#     caught here instead of at the next boot. If the stock firmware's
+#     busybox lacks cmp, verification is skipped with a notice (it is
+#     never misreported as a failure); ubiupdatevol's CRC still guards
+#     the boot.
 #   - Both ubiupdatevol calls are explicitly checked. If the FIRST
 #     fails (or fails verification), the second partition is untouched,
 #     so the router can still boot — safe to retry. If the SECOND fails
@@ -360,11 +363,14 @@ fi
 
 # ---- 1b. Sanity-check the image magic (warn-only) ---------------------
 # OpenWrt MT7621 kernel images are FIT images: the first 4 bytes are the
-# device-tree blob magic 0xD00DFEED. We read them with od (POSIX) and only
-# WARN on mismatch — a hand-built non-FIT image is unusual but might be
-# legitimate, and hard-blocking it would push you toward the less-careful
-# original script. The size check above already catches the common mistakes.
-MAGIC=$(od -An -tx1 -N4 "$IMAGE" 2&gt;/dev/null | tr -d ' \n')
+# device-tree blob magic 0xD00DFEED. We read exactly 4 bytes with dd (so we
+# never depend on od's -N flag, which some stripped busybox builds omit; a
+# bare `od` on a 3 MiB file would otherwise dump the whole image into this
+# variable) and only WARN on mismatch — a hand-built non-FIT image is unusual
+# but might be legitimate, and hard-blocking it would push you toward the
+# less-careful original script. The size check above already catches the
+# common mistakes.
+MAGIC=$(dd if="$IMAGE" bs=1 count=4 2&gt;/dev/null | od -An -tx1 | tr -d ' \n')
 if [ "$MAGIC" != "d00dfeed" ]; then
     echo "WARNING: '$IMAGE' does not start with the expected FIT magic"   &gt;&amp;2
     echo "         (0xD00DFEED). Got: 0x$MAGIC."                          &gt;&amp;2
@@ -378,6 +384,17 @@ if ! command -v ubiupdatevol &gt;/dev/null 2&gt;&amp;1; then
     echo "ERROR: 'ubiupdatevol' not found in PATH."                  &gt;&amp;2
     echo "       Are you running this on the ER605 (not on your PC)?" &gt;&amp;2
     exit 1
+fi
+
+# ---- 2b. Is cmp available for read-back verification? -----------------
+# The stock TP-Link firmware runs a stripped busybox that may not ship cmp.
+# If it's missing we SKIP the byte-for-byte read-back (with a clear notice)
+# instead of misreporting a successful flash as a failure. The flash itself
+# is unaffected: ubiupdatevol writes a CRC-32 into the static kernel volume
+# that UBI re-checks on every read and at boot.
+CAN_VERIFY=1
+if ! command -v cmp &gt;/dev/null 2&gt;&amp;1; then
+    CAN_VERIFY=0
 fi
 
 # ---- 3. Locate the UBI volumes ----------------------------------------
@@ -452,9 +469,16 @@ fi
 # Helper: read the volume back and compare it byte-for-byte to the image.
 # The kernel volumes are static UBI volumes, so reading the char device
 # returns exactly the written data (and re-checks UBI's CRC-32 on the way).
+# If cmp isn't present on this firmware, print a notice and return success
+# (0) so a missing tool is never mistaken for a corrupt flash.
 verify_volume() {
-    # $1 = volume device path
-    cmp -s "$1" "$IMAGE"
+    # $1 = human label, $2 = volume device path
+    if [ "$CAN_VERIFY" != "1" ]; then
+        echo "NOTE: 'cmp' not available -- skipping read-back verification of $1."
+        return 0
+    fi
+    echo "Verifying $2  ($1) ..."
+    cmp -s "$2" "$IMAGE"
 }
 
 # Flash kernel first. If it fails here, kernel.b is still untouched, so
@@ -468,8 +492,7 @@ if ! ubiupdatevol "/dev/ubi0_$VOL_KERNEL" "$IMAGE"; then
     exit 1
 fi
 sync
-echo "Verifying /dev/ubi0_$VOL_KERNEL  (kernel) ..."
-if ! verify_volume "/dev/ubi0_$VOL_KERNEL"; then
+if ! verify_volume "kernel" "/dev/ubi0_$VOL_KERNEL"; then
     sync
     echo "ERROR: verification of 'kernel' FAILED -- the data read back"   &gt;&amp;2
     echo "       does not match the image. 'kernel.b' is still intact, so" &gt;&amp;2
@@ -489,8 +512,7 @@ if ! ubiupdatevol "/dev/ubi0_$VOL_KERNELB" "$IMAGE"; then
     exit 1
 fi
 sync
-echo "Verifying /dev/ubi0_$VOL_KERNELB  (kernel.b) ..."
-if ! verify_volume "/dev/ubi0_$VOL_KERNELB"; then
+if ! verify_volume "kernel.b" "/dev/ubi0_$VOL_KERNELB"; then
     sync
     echo "ERROR: verification of 'kernel.b' FAILED -- the data read back"  &gt;&amp;2
     echo "       does not match the image. 'kernel' is already updated, so" &gt;&amp;2
