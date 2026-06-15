@@ -1030,6 +1030,61 @@ endpoint port          (empty)
 Persistent Keep Alive  25</code></pre>
 <p data-en="Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app." data-es="Generá key pair <em>y</em> preshared key <strong>solo del peer</strong> (no del wg0). El siguiente dispositivo es <code>10.8.0.3/32</code> — siempre <code>/32</code>. El Keep Alive <code>25</code> sale en el QR, así no tocás la app del celu.">Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app.</p><h4 data-en="Generate configuration → QR" data-es="Generate configuration → QR">Generate configuration → QR</h4><p data-en="Scan the QR with the phone app. Mind the DNS:" data-es="Escaneá el QR con la app del celu. Ojo el DNS:">Scan the QR with the phone app. Mind the DNS:</p><pre><code>DNS Servers   10.8.0.1</code></pre>
 <p data-en="Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>." data-es="Usá <code>10.8.0.1</code> (la IP del túnel) para el DNS, <strong>no</strong> <code>192.168.1.1</code>.">Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>.</p>
+<h4 data-en="From a laptop (GNOME) — no QR" data-es="Desde una laptop (GNOME) — sin QR">From a laptop (GNOME) — no QR</h4>
+<p data-en="A laptop can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that text is everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above). The <code>PrivateKey</code>, <code>PublicKey</code> and <code>PresharedKey</code> mentioned below are lines in that block. Two ways to load it:" data-es="Una laptop no puede escanear el QR — pero la misma página <strong>Generate configuration</strong> también imprime la config en texto plano al lado, y ese texto es todo lo que GNOME necesita. Poné sus <strong>Servidores DNS</strong> en <code>10.8.0.1</code> primero (misma nota que arriba). <code>PrivateKey</code>, <code>PublicKey</code> y <code>PresharedKey</code> que se nombran abajo son líneas de ese bloque. Dos formas de cargarlo:">A laptop can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that text is everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above). The <code>PrivateKey</code>, <code>PublicKey</code> and <code>PresharedKey</code> mentioned below are lines in that block. Two ways to load it:</p>
+<p data-en="<strong>Option A — import the file (fastest).</strong> Paste the text config into a file, e.g. <code>wg-home.conf</code>, and import it:" data-es="<strong>Opción A — importar el archivo (lo más rápido).</strong> Pegá la config de texto en un archivo, ej. <code>wg-casa.conf</code>, e importalo:"><strong>Option A — import the file (fastest).</strong> Paste the text config into a file, e.g. <code>wg-home.conf</code>, and import it:</p>
+<pre data-en="<code>nmcli connection import type wireguard file wg-home.conf</code>" data-es="<code>nmcli connection import type wireguard file wg-casa.conf</code>"><code>nmcli connection import type wireguard file wg-home.conf</code></pre>
+<p data-en="That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand." data-es="Listo — el túnel ahora aparece en <strong>Ajustes → Red</strong>, donde lo prendés y apagás. La importación trae todos los campos de una, así no hay nada que cargar a mano.">That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand.</p>
+<p data-en="<strong>Option B — by hand</strong>, if you'd rather stay in the GUI: <strong>Settings → Network → VPN → + → WireGuard</strong>, then fill three tabs." data-es="<strong>Opción B — a mano</strong>, si preferís quedarte en la GUI: <strong>Ajustes → Red → VPN → + → WireGuard</strong>, y llená tres pestañas."><strong>Option B — by hand</strong>, if you'd rather stay in the GUI: <strong>Settings → Network → VPN → + → WireGuard</strong>, then fill three tabs.</p>
+<pre data-en="<code>WireGuard tab
+  Connection name   anything you like
+  Interface name    wg-home   (one token, no spaces)
+  Private key       PrivateKey  (from [Interface])
+  Listen port       51820   (client's local port, not the server's)
+  fwmark / MTU      0 / 0</code>" data-es="<code>Pestaña WireGuard
+  Nombre de la conexión  la que quieras
+  Nombre de la interfaz  wg-casa   (un token, sin espacios)
+  Clave privada          PrivateKey  (de [Interface])
+  Escuchar puerto        51820   (puerto local del cliente, no el del server)
+  fwmark / MTU           0 / 0</code>"><code>WireGuard tab
+  Connection name   anything you like
+  Interface name    wg-home   (one token, no spaces)
+  Private key       PrivateKey  (from [Interface])
+  Listen port       51820   (client's local port, not the server's)
+  fwmark / MTU      0 / 0</code></pre>
+<pre data-en="<code>Peer   (WireGuard tab → Peers → +)
+  Endpoint              YOURNAME.duckdns.org:53320
+  Public key            PublicKey  (from [Peer] — the server's)
+  Pre-shared key        PresharedKey  (from [Peer])
+  Allowed IPs           0.0.0.0/0
+  Persistent keepalive  25   (change it from 0)</code>" data-es="<code>Par   (pestaña WireGuard → Pares → +)
+  Terminador                 TUNOMBRE.duckdns.org:53320
+  Clave pública              PublicKey  (de [Peer] — la del server)
+  Clave pre-compartida       PresharedKey  (de [Peer])
+  Direcciones IP permitidas  0.0.0.0/0
+  Keepalive persistente      25   (cambialo de 0)</code>"><code>Peer   (WireGuard tab → Peers → +)
+  Endpoint              YOURNAME.duckdns.org:53320
+  Public key            PublicKey  (from [Peer] — the server's)
+  Pre-shared key        PresharedKey  (from [Peer])
+  Allowed IPs           0.0.0.0/0
+  Persistent keepalive  25   (change it from 0)</code></pre>
+<pre data-en="<code>IPv4 tab   (separate tab)
+  Method     Manual   (not Automatic/DHCP)
+  Address    10.8.0.2   (this peer's tunnel IP)
+  Netmask    255.255.255.255   (= /32)
+  Gateway    (leave empty)
+  DNS        10.8.0.1   (turn &quot;Automatic&quot; off)</code>" data-es="<code>Pestaña IPv4   (pestaña aparte)
+  Método            Manual   (no Automático/DHCP)
+  Dirección         10.8.0.2   (la IP del túnel de este peer)
+  Máscara           255.255.255.255   (= /32)
+  Puerta de enlace  (dejala vacía)
+  DNS               10.8.0.1   (apagá el &quot;Automático&quot;)</code>"><code>IPv4 tab   (separate tab)
+  Method     Manual   (not Automatic/DHCP)
+  Address    10.8.0.2   (this peer's tunnel IP)
+  Netmask    255.255.255.255   (= /32)
+  Gateway    (leave empty)
+  DNS        10.8.0.1   (turn &quot;Automatic&quot; off)</code></pre>
+<div class="callout caution"><p data-en="Three traps worth repeating: <strong>(1)</strong> the server's port goes in the peer's <strong>Endpoint</strong>, never in <strong>Listen port</strong> — that field is the client's own local port and its value doesn't matter. <strong>(2)</strong> the peer's <strong>Public key</strong> is the <em>server's</em> key, not the laptop's. <strong>(3)</strong> IPv4 must be <strong>Manual</strong>; Automatic/DHCP won't route inside the tunnel. Until you add the peer, the <strong>Add</strong> button stays greyed out — the peer is what tells the tunnel who to talk to." data-es="Tres trampas que vale repetir: <strong>(1)</strong> el puerto del server va en el <strong>Terminador</strong> del par, nunca en <strong>Escuchar puerto</strong> — ese campo es el puerto local del cliente y su valor da igual. <strong>(2)</strong> la <strong>Clave pública</strong> del par es la del <em>server</em>, no la de la laptop. <strong>(3)</strong> IPv4 tiene que ser <strong>Manual</strong>; Automático/DHCP no rutea dentro del túnel. Hasta que no agregás el par, el botón <strong>Añadir</strong> queda gris — el par es lo que le dice al túnel con quién hablar.">Three traps worth repeating: <strong>(1)</strong> the server's port goes in the peer's <strong>Endpoint</strong>, never in <strong>Listen port</strong> — that field is the client's own local port and its value doesn't matter. <strong>(2)</strong> the peer's <strong>Public key</strong> is the <em>server's</em> key, not the laptop's. <strong>(3)</strong> IPv4 must be <strong>Manual</strong>; Automatic/DHCP won't route inside the tunnel. Until you add the peer, the <strong>Add</strong> button stays greyed out — the peer is what tells the tunnel who to talk to.</p></div>
 </section>
 <section id="cfg-ntp">
 <h3 data-en="11. NTP with NTS" data-es="11. NTP con NTS">11. NTP with NTS</h3><p data-en="Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:" data-es="Instalá <code>luci-app-chrony</code> y <code>chrony-nts</code>. Armá un server:">Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:</p><pre><code>server   time.cloudflare.com
