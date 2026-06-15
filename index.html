@@ -7,101 +7,36 @@
 <meta name="description" content="Flash OpenWrt on the TP-Link ER605 v2 and harden it 100% through the LuCI web GUI: closed firewall, encrypted DNS (DoH), AdBlock, WireGuard and NTP with NTS. No SSH.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js" integrity="sha512-8pbzenDolL1l5OPSsoURCx9TEdMFTaeFipASVrMYKhuYtly+k3tcsQYliOEKTmuB1t7yuzAiVo+yd7SJz+ijFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<style>
-  :root { --pico-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main.container { max-width: 52rem; }
-  .lead { font-size: 1.05rem; color: var(--pico-muted-color); }
-  /* barra de idioma */
-  .langbar { display:flex; justify-content:flex-end; margin:0 0 .4rem; }
-  .langbar button { width:auto; margin:0; padding:.25rem .8rem; font-size:.8rem; }
-  .part-label {
-    margin-top: 3.5rem; padding-bottom: .4rem;
-    border-bottom: 2px solid var(--pico-primary);
-  }
-  .part-tag {
-    display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.08em;
-    text-transform:uppercase; color:var(--pico-primary);
-  }
-  /* especificaciones del equipo */
-  .specs { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin:1.5rem 0 0; }
-  .specs > div {
-    border:1px solid var(--pico-muted-border-color); border-radius:.5rem; padding:.6rem .7rem;
-  }
-  .specs .k { font-size:.62rem; text-transform:uppercase; letter-spacing:.08em; color:var(--pico-muted-color); }
-  .specs .v { font-weight:600; font-size:.9rem; }
-  @media (max-width:600px){ .specs{ grid-template-columns:repeat(2,1fr);} }
-  /* bloques de codigo */
-  pre { background:#11161c; color:#e6edf3; border-radius:.55rem; padding:1rem; overflow-x:auto;
-        font-size:.8rem; line-height:1.5; margin:.4rem 0 1rem; }
-  pre code { background:none; color:inherit; padding:0; font-size:inherit; }
-  :not(pre) > code { font-size:.85em; }
-  /* callouts */
-  .callout { border-left:4px solid; border-radius:.45rem; padding:.7rem 1rem; margin:.9rem 0;
-             background:var(--pico-card-background-color); }
-  .callout p { margin:.25rem 0; }
-  .callout.warn    { border-color:#e5484d; background:rgba(229,72,77,.07); }
-  .callout.caution { border-color:#e0a106; background:rgba(224,161,6,.08); }
-  .callout.info    { border-color:#3b82f6; background:rgba(59,130,246,.08); }
-  /* pasos */
-  .step { display:flex; gap:1rem; margin-bottom:1.8rem; }
-  .step-num {
-    flex:0 0 auto; width:2rem; height:2rem; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:.85rem;
-    background:var(--pico-primary-background); color:var(--pico-primary-inverse);
-  }
-  .step > div:last-child { min-width:0; flex:1; }
-  /* generador de contrasenas */
-  #pwResults > div { border:1px solid var(--pico-muted-border-color); border-radius:.5rem;
-                     padding:.8rem 1rem; margin-top:.7rem; }
-  #pwResults > div:first-child { border:none; padding:0; margin-bottom:.3rem;
-      font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--pico-muted-color); }
-  #pwRoot, #pwCli212, #pwCli222 { font-family:var(--pico-font-family-monospace); }
-  #pwResults button {
-    width:auto; display:inline-block; padding:.15rem .55rem; font-size:.72rem;
-    margin:0; background:transparent; color:var(--pico-primary);
-    border:1px solid var(--pico-muted-border-color);
-  }
-  .hidden { display:none !important; }
-  /* indice */
-  .toc { font-size:.9rem; }
-  .toc a { display:inline-block; margin:.1rem .9rem .1rem 0; }
-  details { border:1px solid var(--pico-muted-border-color); border-radius:.5rem;
-            padding:.4rem .9rem; margin:.5rem 0; }
-  summary { font-weight:600; }
-  table { font-size:.9rem; }
-  footer { margin-top:4rem; padding-top:1.2rem; border-top:1px solid var(--pico-muted-border-color);
-           font-size:.85rem; color:var(--pico-muted-color); }
-</style>
 </head>
 <body>
 <main class="container">
 
-<nav class="langbar">
-  <button id="langToggle" class="outline" onclick="toggleLang()">Español</button>
+<nav>
+  <ul></ul>
+  <ul><li><button id="langToggle" class="outline" onclick="toggleLang()">Español</button></li></ul>
 </nav>
 
 <header>
   <hgroup>
     <h1 data-en="Flash &amp;amp; configure OpenWrt on the TP-Link ER605 v2" data-es="Flashear y configurar OpenWrt en el TP-Link ER605 v2">Flash &amp; configure OpenWrt on the TP-Link ER605 v2</h1>
-    <p class="lead" data-en="From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH." data-es="De fábrica a un router OpenWrt endurecido: flasheo paso a paso, y una configuración mínima 100% por GUI (LuCI) — firewall cerrado, DNS cifrado, AdBlock, WireGuard y NTP con NTS. Sin tocar SSH.">From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH.</p>
+    <p data-en="From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH." data-es="De fábrica a un router OpenWrt endurecido: flasheo paso a paso, y una configuración mínima 100% por GUI (LuCI) — firewall cerrado, DNS cifrado, AdBlock, WireGuard y NTP con NTS. Sin tocar SSH.">From stock to a hardened OpenWrt router: step-by-step flashing, plus a minimal config done 100% through the LuCI web GUI — closed firewall, encrypted DNS, AdBlock, WireGuard and NTP with NTS. Without ever touching SSH.</p>
   </hgroup>
-  <div class="specs">
-    <div><div class="k">SoC</div><div class="v">MT7621AT</div></div>
-    <div><div class="k">RAM</div><div class="v">256 MB</div></div>
-    <div><div class="k">Target</div><div class="v">ramips/mt7621</div></div>
-    <div><div class="k">OpenWrt</div><div class="v">25.12.4</div></div>
+  <div class="grid">
+    <article><small>SoC</small><br><strong>MT7621AT</strong></article>
+    <article><small>RAM</small><br><strong>256 MB</strong></article>
+    <article><small>Target</small><br><strong>ramips/mt7621</strong></article>
+    <article><small>OpenWrt</small><br><strong>25.12.4</strong></article>
   </div>
-  <nav class="toc">
+  <nav>
     <small>
-      <strong class="part-tag" data-en="Part 1 · Flashing" data-es="Parte 1 · Flasheo">Part 1 · Flashing</strong><br>
+      <strong data-en="Part 1 · Flashing" data-es="Parte 1 · Flasheo">Part 1 · Flashing</strong><br>
       <a href="#overview" data-en="Overview" data-es="Resumen">Overview</a>
       <a href="#compatibility" data-en="Compatibility" data-es="Compatibilidad">Compatibility</a>
       <a href="#password-gen" data-en="Password generator" data-es="Generador de contraseñas">Password generator</a>
       <a href="#flash-guide" data-en="Flash guide" data-es="Guía de flasheo">Flash guide</a>
       <a href="#troubleshooting" data-en="Troubleshooting" data-es="Solución de problemas">Troubleshooting</a>
       <a href="#revert" data-en="Back to stock" data-es="Volver al stock">Back to stock</a><br>
-      <strong class="part-tag" data-en="Part 2 · GUI configuration" data-es="Parte 2 · Configuración por GUI">Part 2 · GUI configuration</strong><br>
+      <strong data-en="Part 2 · GUI configuration" data-es="Parte 2 · Configuración por GUI">Part 2 · GUI configuration</strong><br>
       <a href="#cfg-password" data-en="Password" data-es="Contraseña">Password</a>
       <a href="#cfg-wan-drop" data-en="Firewall" data-es="Firewall">Firewall</a>
       <a href="#cfg-offload" data-en="Flow offloading" data-es="Flow offloading">Flow offloading</a>
@@ -115,8 +50,8 @@
   </nav>
 </header>
 
-<h2 class="part-label" data-en="<span class='part-tag'>Part 1</span><br>Flashing OpenWrt on the ER605" data-es="<span class='part-tag'>Parte 1</span><br>Flasheo de OpenWrt en el ER605"><span class="part-tag">Part 1</span><br>Flashing OpenWrt on the ER605</h2>
-<p class="lead" data-en="Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware." data-es="Reemplazar el firmware de fábrica de TP-Link por OpenWrt. Esta sección es específica del hardware ER605 v2.">Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware.</p>
+<h2 data-en="<strong>Part 1</strong><br>Flashing OpenWrt on the ER605" data-es="<strong>Parte 1</strong><br>Flasheo de OpenWrt en el ER605"><strong>Part 1</strong><br>Flashing OpenWrt on the ER605</h2>
+<p data-en="Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware." data-es="Reemplazar el firmware de fábrica de TP-Link por OpenWrt. Esta sección es específica del hardware ER605 v2.">Replace TP-Link's stock firmware with OpenWrt. This section is specific to the ER605 v2 hardware.</p>
 <section id="overview">
 <h2>
 
@@ -130,7 +65,7 @@
 
 <section>
 <div>
-<div class="callout warn">
+<blockquote>
 <div>
 <span>⚠</span>
 <div>
@@ -138,8 +73,8 @@
 <p data-en="Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working." data-es="Mantener el cable WAN desconectado durante todo el proceso de flasheo. Si el router detecta acceso a internet, TP-Link requiere un token firmado online y la contraseña generada localmente deja de funcionar.">Keep the WAN cable disconnected during the entire flashing process. If the router detects internet access, TP-Link requires an online-signed token and the locally generated password stops working.</p>
 </div>
 </div>
-</div>
-<div class="callout warn">
+</blockquote>
+<blockquote>
 <div>
 <span>⚠</span>
 <div>
@@ -147,8 +82,8 @@
 <p data-en="After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup." data-es="Después de flashear OpenWrt, el modo de recuperación de emergencia del ER605 queda deshabilitado. La única forma de volver al firmware de fábrica es via ubiformat desde la consola de OpenWrt usando tu backup MTD.">After flashing OpenWrt, the ER605's Emergency Recovery Mode is disabled. The only way back to stock firmware is via ubiformat from OpenWrt's console using your MTD backup.</p>
 </div>
 </div>
-</div>
-<div class="callout warn">
+</blockquote>
+<blockquote>
 <div>
 <span>⚠</span>
 <div>
@@ -156,7 +91,7 @@
 <p data-en="If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process." data-es="Si se corta la energía durante el flasheo, el router puede quedar brickeado permanentemente. Usar una fuente de energía estable y no desconectar nada durante el proceso.">If power is lost during flashing, the router may be permanently bricked. Use a stable power source and don't disconnect anything during the process.</p>
 </div>
 </div>
-</div>
+</blockquote>
 </div>
 </section>
 
@@ -196,9 +131,9 @@
 </tbody>
 </table>
 </div>
-<div class="callout caution">
+<blockquote>
 <p data-en="&lt;strong&gt;Firmware 2.2.6+ is confirmed blocked.&lt;/strong&gt; Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass." data-es="&lt;strong&gt;Firmware 2.2.6+ está confirmado como bloqueado.&lt;/strong&gt; Probado en vivo en Marzo 2026: el downgrade de 2.3.3 a 2.2.5 fue imposible usando Emergency Recovery, rollback por GUI, rollback por SSH y factory reset. Si tu router ya tiene 2.2.6+, tus opciones son: contactar soporte TP-Link, comprar otro ER605 con 2.2.5, o esperar un bypass de la comunidad."><strong>Firmware 2.2.6+ is confirmed blocked.</strong> Tested live in March 2026: downgrade from 2.3.3 to 2.2.5 was impossible using Emergency Recovery, GUI rollback, SSH rollback, and factory reset. If your router already has 2.2.6+, your options are: contact TP-Link support, buy another ER605 with 2.2.5, or wait for a community bypass.</p>
-</div>
+</blockquote>
 </section>
 
 <section id="password-gen">
@@ -212,7 +147,7 @@
 <label data-en="MAC Address" data-es="Dirección MAC" for="macAddr">MAC Address</label>
 <p data-en="Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF." data-es="Se encuentra en la etiqueta en la parte inferior del ER605 o en System Status. Formatos: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, o AABBCCDDEEFF.">Found on the label on the bottom of your ER605 or in System Status. Formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, or AABBCCDDEEFF.</p>
 <input id="macAddr" oninput="generatePasswords()" placeholder="AA:BB:CC:DD:EE:FF" type="text"/>
-<p class="hidden" data-en="Invalid MAC address. Must contain exactly 12 hex characters." data-es="Dirección MAC inválida. Debe contener exactamente 12 caracteres hexadecimales." id="macErr">Invalid MAC address. Must contain exactly 12 hex characters.</p>
+<p hidden data-en="Invalid MAC address. Must contain exactly 12 hex characters." data-es="Dirección MAC inválida. Debe contener exactamente 12 caracteres hexadecimales." id="macErr">Invalid MAC address. Must contain exactly 12 hex characters.</p>
 </div>
 <div>
 <label data-en="Username" data-es="Nombre de usuario" for="uname">Username</label>
@@ -220,36 +155,36 @@
 <input id="uname" oninput="generatePasswords()" placeholder="admin" type="text"/>
 </div>
 </div>
-<div class="hidden" id="pwResults">
+<div hidden id="pwResults">
 <div data-en="Generated Passwords" data-es="Contraseñas generadas">Generated Passwords</div>
 <div>
 <div>
 <span>Root password</span>
-<button onclick="copyText('pwRoot',this)"><span class="cp-label">Copy</span></button>
+<button class="outline secondary" onclick="copyText('pwRoot',this)"><span class="cp-label">Copy</span></button>
 </div>
-<span id="pwRoot">—</span>
+<code id="pwRoot">—</code>
 </div>
 <div>
 <span data-en="CLI debug mode password" data-es="Contraseña del modo debug CLI">CLI debug mode password</span>
 <div>
 <div>
 <span>v2.1.2 &amp; below</span>
-<div id="pwCli212">—</div>
+<code id="pwCli212">—</code>
 </div>
-<button onclick="copyText('pwCli212',this)"><span class="cp-label">Copy</span></button>
+<button class="outline secondary" onclick="copyText('pwCli212',this)"><span class="cp-label">Copy</span></button>
 </div>
 <div>
 <div>
 <span>v2.2.2 – 2.2.5</span>
-<div id="pwCli222">—</div>
+<code id="pwCli222">—</code>
 </div>
-<button onclick="copyText('pwCli222',this)"><span class="cp-label">Copy</span></button>
+<button class="outline secondary" onclick="copyText('pwCli222',this)"><span class="cp-label">Copy</span></button>
 </div>
 </div>
-<div class="callout warn">
+<blockquote>
 <span>v2.2.6+:</span>
 <span data-en="Password generator does not work. TP-Link changed the authentication mechanism." data-es="El generador de contraseñas no funciona. TP-Link cambió el mecanismo de autenticación.">Password generator does not work. TP-Link changed the authentication mechanism.</span>
-</div>
+</blockquote>
 </div>
 </section>
 
@@ -261,10 +196,9 @@
 <h3 data-en="Phase 1 — Preparation (with internet)" data-es="Fase 1 — Preparación (con internet)">Phase 1 — Preparation (with internet)</h3>
 <div>
 <!-- Step 1 -->
-<div class="step">
-<div class="step-num">1</div>
 <div>
-<h4 data-en="Download everything" data-es="Descargar todo">Download everything</h4>
+<div>
+<h4 data-en="1. Download everything" data-es="1. Descargar todo">1. Download everything</h4>
 <p data-en="Your PC needs internet for this step. Download all files before touching the router." data-es="Tu PC necesita internet para este paso. Descargá todos los archivos antes de tocar el router.">Your PC needs internet for this step. Download all files before touching the router.</p>
 <p data-en="1a. Generate the debug password using the generator above." data-es="1a. Generá la contraseña debug usando el generador de arriba.">1a. Generate the debug password using the generator above.</p>
 <p data-en="Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version." data-es="Guardá ambas contraseñas CLI debug en un archivo de texto — vas a necesitar la correcta según tu versión de firmware.">Save both CLI debug passwords to a text file — you'll need the right one depending on your firmware version.</p>
@@ -587,10 +521,9 @@ curl -LO https://downloads.openwrt.org/releases/25.12.4/targets/ramips/mt7621/op
 </div>
 </div>
 <!-- Step 2 -->
-<div class="step">
-<div class="step-num">2</div>
 <div>
-<h4 data-en="Disconnect internet &amp; verify firmware" data-es="Desconectar internet y verificar firmware">Disconnect internet &amp; verify firmware</h4>
+<div>
+<h4 data-en="2. Disconnect internet &amp; verify firmware" data-es="2. Desconectar internet y verificar firmware">2. Disconnect internet &amp; verify firmware</h4>
 <ol>
 <li data-en="Disconnect the WAN cable from the router" data-es="Desconectá el cable WAN del router">Disconnect the WAN cable from the router</li>
 <li data-en="Connect your PC to a LAN port via ethernet" data-es="Conectá tu PC a un puerto LAN via cable ethernet">Connect your PC to a LAN port via ethernet</li>
@@ -600,10 +533,9 @@ curl -LO https://downloads.openwrt.org/releases/25.12.4/targets/ramips/mt7621/op
 </div>
 </div>
 <!-- Step 3 -->
-<div class="step">
-<div class="step-num">3</div>
 <div>
-<h4 data-en="Enable SSH on the router" data-es="Habilitar SSH en el router">Enable SSH on the router</h4>
+<div>
+<h4 data-en="3. Enable SSH on the router" data-es="3. Habilitar SSH en el router">3. Enable SSH on the router</h4>
 <p data-en="In the web GUI: &lt;strong&gt;System Tools → Diagnostics → Remote Assistance&lt;/strong&gt; → enable it." data-es="En la GUI web: &lt;strong&gt;System Tools → Diagnostics → Remote Assistance&lt;/strong&gt; → habilitarlo.">In the web GUI: <strong>System Tools → Diagnostics → Remote Assistance</strong> → enable it.</p>
 </div>
 </div>
@@ -614,21 +546,19 @@ curl -LO https://downloads.openwrt.org/releases/25.12.4/targets/ramips/mt7621/op
 <h3 data-en="Phase 2 — SSH Access" data-es="Fase 2 — Acceso SSH">Phase 2 — SSH Access</h3>
 <div>
 <!-- Step 4 -->
-<div class="step">
-<div class="step-num">4</div>
 <div>
-<h4 data-en="Connect via SSH" data-es="Conectar via SSH">Connect via SSH</h4>
+<div>
+<h4 data-en="4. Connect via SSH" data-es="4. Conectar via SSH">4. Connect via SSH</h4>
 <p data-en="The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:" data-es="El servidor SSH del ER605 usa algoritmos legacy que las distros modernas bloquean por defecto. Pasalos directamente en el comando:">The ER605's SSH server uses legacy algorithms that modern distros block by default. Pass them directly in the command:</p>
 <pre><code>ssh -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -c aes128-ctr admin@192.168.0.1</code></pre>
 <p data-en="Use your GUI username (usually admin). Password is the same as the GUI." data-es="Usá tu usuario de la GUI (generalmente admin). La contraseña es la misma de la GUI.">Use your GUI username (usually admin). Password is the same as the GUI.</p>
-<div class="callout caution" data-en="&lt;strong&gt;Note:&lt;/strong&gt; scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead." data-es="&lt;strong&gt;Nota:&lt;/strong&gt; scp no funciona con el ER605 — el shell imprime banners que corrompen la transferencia. Usá el método del servidor HTTP en el Paso 8."><strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead.</div>
+<blockquote data-en="&lt;strong&gt;Note:&lt;/strong&gt; scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead." data-es="&lt;strong&gt;Nota:&lt;/strong&gt; scp no funciona con el ER605 — el shell imprime banners que corrompen la transferencia. Usá el método del servidor HTTP en el Paso 8."><strong>Note:</strong> scp does not work with the ER605 — the shell prints banners that corrupt the transfer. Use the HTTP server method in Step 8 instead.</blockquote>
 </div>
 </div>
 <!-- Step 5 -->
-<div class="step">
-<div class="step-num">5</div>
 <div>
-<h4 data-en="Enter debug mode" data-es="Entrar en modo debug">Enter debug mode</h4>
+<div>
+<h4 data-en="5. Enter debug mode" data-es="5. Entrar en modo debug">5. Enter debug mode</h4>
 <p data-en="Once inside SSH, run:" data-es="Una vez dentro de SSH, ejecutá:">Once inside SSH, run:</p>
 <pre><code>enable
 debug</code></pre>
@@ -641,11 +571,10 @@ debug</code></pre>
 <div>
 <h3 data-en="Phase 3 — MTD Backup (strongly recommended)" data-es="Fase 3 — Backup MTD (muy recomendado)">Phase 3 — MTD Backup (strongly recommended)</h3>
 <div>
-<div class="step">
-<div class="step-num">6</div>
 <div>
-<h4 data-en="Back up all MTD partitions" data-es="Hacer backup de todas las particiones MTD">Back up all MTD partitions</h4>
-<div class="callout warn" data-en="Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this." data-es="Sin este backup, restaurar el firmware de fábrica requiere soldar una consola serial UART a la PCB. No te saltees esto.">Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this.</div>
+<div>
+<h4 data-en="6. Back up all MTD partitions" data-es="6. Hacer backup de todas las particiones MTD">6. Back up all MTD partitions</h4>
+<blockquote data-en="Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this." data-es="Sin este backup, restaurar el firmware de fábrica requiere soldar una consola serial UART a la PCB. No te saltees esto.">Without this backup, restoring stock firmware requires soldering a UART serial console to the PCB. Don't skip this.</blockquote>
 <details open="">
 <summary>
 
@@ -687,7 +616,7 @@ done
 echo ""
 echo "=== Backup complete ==="
 ls -lh "$DIR"</code></pre>
-<div class="callout caution" data-en="If &lt;code&gt;nc -l -p 9090&lt;/code&gt; gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to &lt;code&gt;nc -l 9090&lt;/code&gt; without the &lt;code&gt;-p&lt;/code&gt; flag." data-es="Si &lt;code&gt;nc -l -p 9090&lt;/code&gt; da error (común en Debian/Ubuntu con OpenBSD netcat), cambialo a &lt;code&gt;nc -l 9090&lt;/code&gt; sin el flag &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p 9090</code> gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to <code>nc -l 9090</code> without the <code>-p</code> flag.</div>
+<blockquote data-en="If &lt;code&gt;nc -l -p 9090&lt;/code&gt; gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to &lt;code&gt;nc -l 9090&lt;/code&gt; without the &lt;code&gt;-p&lt;/code&gt; flag." data-es="Si &lt;code&gt;nc -l -p 9090&lt;/code&gt; da error (común en Debian/Ubuntu con OpenBSD netcat), cambialo a &lt;code&gt;nc -l 9090&lt;/code&gt; sin el flag &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p 9090</code> gives an error (common on Debian/Ubuntu with OpenBSD netcat), change it to <code>nc -l 9090</code> without the <code>-p</code> flag.</blockquote>
 <p data-en="send_backup.sh — run on the router:" data-es="send_backup.sh — correr en el router:">send_backup.sh — run on the router:</p>
 <pre><code>#!/bin/ash
 # send_backup.sh — Run on the ER605 router (ash/BusyBox)
@@ -780,7 +709,7 @@ while true; do
   # Receive file data
   nc -l -p $PORT &gt; "$FILENAME"
 done</code></pre>
-<div class="callout caution" data-en="If &lt;code&gt;nc -l -p&lt;/code&gt; gives an error, change to &lt;code&gt;nc -l&lt;/code&gt; without &lt;code&gt;-p&lt;/code&gt;." data-es="Si &lt;code&gt;nc -l -p&lt;/code&gt; da error, cambialo a &lt;code&gt;nc -l&lt;/code&gt; sin &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p</code> gives an error, change to <code>nc -l</code> without <code>-p</code>.</div>
+<blockquote data-en="If &lt;code&gt;nc -l -p&lt;/code&gt; gives an error, change to &lt;code&gt;nc -l&lt;/code&gt; without &lt;code&gt;-p&lt;/code&gt;." data-es="Si &lt;code&gt;nc -l -p&lt;/code&gt; da error, cambialo a &lt;code&gt;nc -l&lt;/code&gt; sin &lt;code&gt;-p&lt;/code&gt;.">If <code>nc -l -p</code> gives an error, change to <code>nc -l</code> without <code>-p</code>.</blockquote>
 <p data-en="How to use:" data-es="Cómo usarlo:">How to use:</p>
 <ol>
 <li data-en="Run &lt;code&gt;./receive.sh&lt;/code&gt; on your PC" data-es="Corré &lt;code&gt;./receive.sh&lt;/code&gt; en tu PC">Run <code>./receive.sh</code> on your PC</li>
@@ -820,29 +749,26 @@ sync &amp;&amp; umount /mnt/usb</code></pre>
 <div>
 <h3 data-en="Phase 4 — Transfer files to the router" data-es="Fase 4 — Transferir archivos al router">Phase 4 — Transfer files to the router</h3>
 <div>
-<div class="step">
-<div class="step-num">7</div>
 <div>
-<h4 data-en="Start a temporary HTTP server on your PC" data-es="Iniciar un servidor HTTP temporal en tu PC">Start a temporary HTTP server on your PC</h4>
+<div>
+<h4 data-en="7. Start a temporary HTTP server on your PC" data-es="7. Iniciar un servidor HTTP temporal en tu PC">7. Start a temporary HTTP server on your PC</h4>
 <pre><code>cd ~/er605_flash
 python3 -m http.server 8080</code></pre>
-<div class="callout caution" data-en="&lt;strong&gt;Firewall:&lt;/strong&gt; If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;." data-es="&lt;strong&gt;Firewall:&lt;/strong&gt; Si curl da timeout en el siguiente paso, el firewall de tu PC puede estar bloqueando el puerto 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;."><strong>Firewall:</strong> If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>.</div>
+<blockquote data-en="&lt;strong&gt;Firewall:&lt;/strong&gt; If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;." data-es="&lt;strong&gt;Firewall:&lt;/strong&gt; Si curl da timeout en el siguiente paso, el firewall de tu PC puede estar bloqueando el puerto 8080. Fedora: &lt;code&gt;sudo firewall-cmd --add-port=8080/tcp&lt;/code&gt;. Ubuntu: &lt;code&gt;sudo ufw allow 8080/tcp&lt;/code&gt;."><strong>Firewall:</strong> If curl times out in the next step, your PC firewall may be blocking port 8080. Fedora: <code>sudo firewall-cmd --add-port=8080/tcp</code>. Ubuntu: <code>sudo ufw allow 8080/tcp</code>.</blockquote>
 </div>
 </div>
-<div class="step">
-<div class="step-num">8</div>
 <div>
-<h4 data-en="Download files from the router" data-es="Descargar archivos desde el router">Download files from the router</h4>
+<div>
+<h4 data-en="8. Download files from the router" data-es="8. Descargar archivos desde el router">8. Download files from the router</h4>
 <pre><code>cd /tmp
 curl -o er605v2_write_initramfs.sh http://YOUR_PC_IP:8080/er605v2_write_initramfs.sh
 curl -o openwrt-initramfs-compact.bin http://YOUR_PC_IP:8080/openwrt-initramfs-compact.bin
 chmod +x er605v2_write_initramfs.sh</code></pre>
 </div>
 </div>
-<div class="step">
-<div class="step-num">9</div>
 <div>
-<h4 data-en="Verify checksum" data-es="Verificar checksum">Verify checksum</h4>
+<div>
+<h4 data-en="9. Verify checksum" data-es="9. Verificar checksum">9. Verify checksum</h4>
 <pre><code>md5sum openwrt-initramfs-compact.bin</code></pre>
 <p data-en="The output must match:" data-es="La salida debe coincidir con:">The output must match:</p>
 <div>
@@ -858,19 +784,17 @@ chmod +x er605v2_write_initramfs.sh</code></pre>
 <div>
 <h3 data-en="Phase 5 — Flashing (point of no return)" data-es="Fase 5 — Flasheo (punto de no retorno)">Phase 5 — Flashing (point of no return)</h3>
 <div>
-<div class="step">
-<div class="step-num">10</div>
 <div>
-<h4 data-en="Flash the initramfs image" data-es="Flashear la imagen initramfs">Flash the initramfs image</h4>
-<div class="callout warn" data-en="Do NOT unplug or power off during this step. A power loss here bricks the router." data-es="NO desconectar ni apagar durante este paso. Un corte de energía aquí brickea el router.">Do NOT unplug or power off during this step. A power loss here bricks the router.</div>
+<div>
+<h4 data-en="10. Flash the initramfs image" data-es="10. Flashear la imagen initramfs">10. Flash the initramfs image</h4>
+<blockquote data-en="Do NOT unplug or power off during this step. A power loss here bricks the router." data-es="NO desconectar ni apagar durante este paso. Un corte de energía aquí brickea el router.">Do NOT unplug or power off during this step. A power loss here bricks the router.</blockquote>
 <pre><code>./er605v2_write_initramfs.sh openwrt-initramfs-compact.bin</code></pre>
 <p data-en="If you used the safer version (recommended), it will print a summary (image, size, target partitions) and ask you to type &lt;code&gt;yes&lt;/code&gt; before flashing. The original chill1Penguin script flashes immediately without asking." data-es="Si usaste la versión más segura (recomendada), va a imprimir un resumen (imagen, tamaño, particiones de destino) y va a pedirte que escribas &lt;code&gt;yes&lt;/code&gt; antes de flashear. El script original de chill1Penguin flashea de una sin preguntar.">If you used the safer version (recommended), it will print a summary (image, size, target partitions) and ask you to type <code>yes</code> before flashing. The original chill1Penguin script flashes immediately without asking.</p>
 </div>
 </div>
-<div class="step">
-<div class="step-num">11</div>
 <div>
-<h4 data-en="Reboot" data-es="Reiniciar">Reboot</h4>
+<div>
+<h4 data-en="11. Reboot" data-es="11. Reiniciar">11. Reboot</h4>
 <pre><code>reboot</code></pre>
 <p data-en="Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal." data-es="Esperá 2–3 minutos. Todos los LEDs se van a apagar, después van a parpadear, y después se van a estabilizar. Esto es normal.">Wait 2–3 minutes. All LEDs will turn off, then blink, then stabilize. This is normal.</p>
 <pre><code><span># Monitor from your PC:</span>
@@ -883,25 +807,23 @@ while ! ping -c1 -W1 192.168.1.1 &amp;&gt;/dev/null; do echo "Waiting..."; sleep
 <div>
 <h3 data-en="Phase 6 — OpenWrt Setup" data-es="Fase 6 — Configuración de OpenWrt">Phase 6 — OpenWrt Setup</h3>
 <div>
-<div class="step">
-<div class="step-num">12</div>
 <div>
-<h4 data-en="Access the installer" data-es="Acceder al instalador">Access the installer</h4>
+<div>
+<h4 data-en="12. Access the installer" data-es="12. Acceder al instalador">12. Access the installer</h4>
 <p data-en='Open &lt;code&gt;http://192.168.1.1&lt;/code&gt; — note the IP changed from 192.168.&lt;strong&gt;0&lt;/strong&gt;.1 to 192.168.&lt;strong&gt;1&lt;/strong&gt;.1. You should see the "ER605 v2 Installer" page.' data-es='Abrí &lt;code&gt;http://192.168.1.1&lt;/code&gt; — notá que la IP cambió de 192.168.&lt;strong&gt;0&lt;/strong&gt;.1 a 192.168.&lt;strong&gt;1&lt;/strong&gt;.1. Deberías ver la página "ER605 v2 Installer".'>Open <code>http://192.168.1.1</code> — note the IP changed from 192.168.<strong>0</strong>.1 to 192.168.<strong>1</strong>.1. You should see the "ER605 v2 Installer" page.</p>
-<div class="callout caution" data-en="&lt;strong&gt;If it doesn't load:&lt;/strong&gt; disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE&lt;/code&gt;." data-es="&lt;strong&gt;Si no carga:&lt;/strong&gt; desconectá el WiFi de tu PC, esperá más, reconectá el cable ethernet, o probá una IP estática: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev TU_INTERFAZ&lt;/code&gt;."><strong>If it doesn't load:</strong> disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: <code>sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE</code>.</div>
+<blockquote data-en="&lt;strong&gt;If it doesn't load:&lt;/strong&gt; disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE&lt;/code&gt;." data-es="&lt;strong&gt;Si no carga:&lt;/strong&gt; desconectá el WiFi de tu PC, esperá más, reconectá el cable ethernet, o probá una IP estática: &lt;code&gt;sudo ip addr add 192.168.1.100/24 dev TU_INTERFAZ&lt;/code&gt;."><strong>If it doesn't load:</strong> disconnect WiFi on your PC, wait longer, reconnect the ethernet cable, or try a static IP: <code>sudo ip addr add 192.168.1.100/24 dev YOUR_INTERFACE</code>.</blockquote>
 </div>
 </div>
-<div class="step">
-<div class="step-num">13</div>
 <div>
-<h4 data-en="Adjust UBI layout &amp; flash sysupgrade 25.12.4" data-es="Ajustar UBI layout y flashear sysupgrade 25.12.4">Adjust UBI layout &amp; flash sysupgrade 25.12.4</h4>
+<div>
+<h4 data-en="13. Adjust UBI layout &amp; flash sysupgrade 25.12.4" data-es="13. Ajustar UBI layout y flashear sysupgrade 25.12.4">13. Adjust UBI layout &amp; flash sysupgrade 25.12.4</h4>
 <ol>
 <li data-en='Click &lt;strong&gt;"Adjust UBI Layout"&lt;/strong&gt; if it says "NOT ADJUSTED"' data-es='Hacé click en &lt;strong&gt;"Adjust UBI Layout"&lt;/strong&gt; si dice "NOT ADJUSTED"'>Click <strong>"Adjust UBI Layout"</strong> if it says "NOT ADJUSTED"</li>
 <li data-en='Upload the &lt;strong&gt;25.12.4&lt;/strong&gt; sysupgrade image, &lt;strong&gt;uncheck "Keep settings"&lt;/strong&gt;, and click &lt;strong&gt;Flash&lt;/strong&gt;' data-es='Subí la imagen sysupgrade &lt;strong&gt;25.12.4&lt;/strong&gt;, &lt;strong&gt;desmarcá "Keep settings"&lt;/strong&gt;, y hacé click en &lt;strong&gt;Flash&lt;/strong&gt;'>Upload the <strong>25.12.4</strong> sysupgrade image, <strong>uncheck "Keep settings"</strong>, and click <strong>Flash</strong></li>
 <li data-en="Wait several minutes — do NOT power off the router" data-es="Esperá varios minutos — NO apagues el router">Wait several minutes — do NOT power off the router</li>
 <li data-en="After reboot, access &lt;code&gt;http://192.168.1.1&lt;/code&gt; → you should see &lt;strong&gt;LuCI&lt;/strong&gt;. Login: &lt;strong&gt;root&lt;/strong&gt;, password: &lt;em&gt;empty&lt;/em&gt;." data-es="Después del reinicio, accedé a &lt;code&gt;http://192.168.1.1&lt;/code&gt; → deberías ver &lt;strong&gt;LuCI&lt;/strong&gt;. Login: &lt;strong&gt;root&lt;/strong&gt;, contraseña: &lt;em&gt;vacía&lt;/em&gt;.">After reboot, access <code>http://192.168.1.1</code> → you should see <strong>LuCI</strong>. Login: <strong>root</strong>, password: <em>empty</em>.</li>
 </ol>
-<div class="callout caution" data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es='Si ves "Image check failed" en rojo, es porque "Keep settings" está marcado. Desmarcalo y el error desaparece. NO uses "Force upgrade".'>If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</div>
+<blockquote data-en="If you see &quot;Image check failed&quot; in red, it's because &quot;Keep settings&quot; is checked. Uncheck it and the error disappears. Do NOT use &quot;Force upgrade&quot;." data-es='Si ves "Image check failed" en rojo, es porque "Keep settings" está marcado. Desmarcalo y el error desaparece. NO uses "Force upgrade".'>If you see "Image check failed" in red, it's because "Keep settings" is checked. Uncheck it and the error disappears. Do NOT use "Force upgrade".</blockquote>
 </div>
 </div>
 </div>
@@ -955,14 +877,14 @@ ssh-keygen -R 192.168.1.1</code></pre>
 
 <section id="revert">
 <h2 data-en="Revert to Stock Firmware" data-es="Volver al firmware de fábrica">Revert to Stock Firmware</h2>
-<div class="callout warn" data-en='&lt;strong&gt;The restore command depends on how your backup was made.&lt;/strong&gt; Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;MTD backup documentation&lt;/a&gt; before restoring.' data-es='&lt;strong&gt;El comando de restauración depende de cómo se hizo tu backup.&lt;/strong&gt; Usar el comando incorrecto (ubiformat vs mtd write) puede destruir la tabla de bloques malos de la NAND y brickear el router permanentemente. Consultá la &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;documentación del backup MTD&lt;/a&gt; antes de restaurar.'><strong>The restore command depends on how your backup was made.</strong> Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md">MTD backup documentation</a> before restoring.</div>
+<blockquote data-en='&lt;strong&gt;The restore command depends on how your backup was made.&lt;/strong&gt; Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;MTD backup documentation&lt;/a&gt; before restoring.' data-es='&lt;strong&gt;El comando de restauración depende de cómo se hizo tu backup.&lt;/strong&gt; Usar el comando incorrecto (ubiformat vs mtd write) puede destruir la tabla de bloques malos de la NAND y brickear el router permanentemente. Consultá la &lt;a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md"&gt;documentación del backup MTD&lt;/a&gt; antes de restaurar.'><strong>The restore command depends on how your backup was made.</strong> Using the wrong command (ubiformat vs mtd write) can destroy the NAND bad block table and permanently brick the router. Consult the <a href="https://github.com/chill1Penguin/er605v2_openwrt_install/blob/main/MTD_backup/README.md">MTD backup documentation</a> before restoring.</blockquote>
 
 
 
 
 </section>
-<h2 class="part-label" data-en="<span class='part-tag'>Part 2</span><br>Minimal configuration via the GUI (LuCI)" data-es="<span class='part-tag'>Parte 2</span><br>Configuración mínima por GUI (LuCI)"><span class="part-tag">Part 2</span><br>Minimal configuration via the GUI (LuCI)</h2>
-<p class="lead" data-en="With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI." data-es="Ya con OpenWrt corriendo y LuCI en <code>http://192.168.1.1</code>, esto es lo único que toco. Todo lo que no nombro queda bien por default. Nada de SSH: todo por la web.">With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI.</p>
+<h2 data-en="<strong>Part 2</strong><br>Minimal configuration via the GUI (LuCI)" data-es="<strong>Parte 2</strong><br>Configuración mínima por GUI (LuCI)"><strong>Part 2</strong><br>Minimal configuration via the GUI (LuCI)</h2>
+<p data-en="With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI." data-es="Ya con OpenWrt corriendo y LuCI en <code>http://192.168.1.1</code>, esto es lo único que toco. Todo lo que no nombro queda bien por default. Nada de SSH: todo por la web.">With OpenWrt running and LuCI at <code>http://192.168.1.1</code>, this is the only thing I touch. Anything I don't mention is fine on its defaults. No SSH — everything through the web UI.</p>
 <section id="cfg-password">
 <h3 data-en="1. Password" data-es="1. Contraseña">1. Password</h3><p data-en="Log in to LuCI as <code>root</code> and change the router password." data-es="Entrá a LuCI como <code>root</code> y cambiá la contraseña del router.">Log in to LuCI as <code>root</code> and change the router password.</p>
 </section>
@@ -976,18 +898,18 @@ ssh-keygen -R 192.168.1.1</code></pre>
 <h3 data-en="4. Kill the ping" data-es="4. Matar el ping">4. Kill the ping</h3><p data-en="<strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → disable." data-es="<strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → deshabilitar."><strong>Network → Firewall → Traffic Rules</strong> → <strong>Allow-Ping</strong> → disable.</p>
 </section>
 <section id="cfg-offload">
-<h3 data-en="5. Hardware flow offloading" data-es="5. Hardware flow offloading">5. Hardware flow offloading</h3><p data-en="This one is <strong>not</strong> a traffic rule — it's a single checkbox. <strong>Network → Firewall → General Settings</strong> → under <strong>Routing/NAT Offloading</strong> tick <strong>Software flow offloading</strong> and then <strong>Hardware flow offloading</strong> (the hardware option only becomes available once software is on)." data-es="Este <strong>no</strong> es un traffic rule — es un solo checkbox. <strong>Network → Firewall → General Settings</strong> → en <strong>Routing/NAT Offloading</strong> tildá <strong>Software flow offloading</strong> y después <strong>Hardware flow offloading</strong> (la opción de hardware solo aparece cuando la de software está activada).">This one is <strong>not</strong> a traffic rule — it's a single checkbox. <strong>Network → Firewall → General Settings</strong> → under <strong>Routing/NAT Offloading</strong> tick <strong>Software flow offloading</strong> and then <strong>Hardware flow offloading</strong> (the hardware option only becomes available once software is on).</p><div class="callout info"><p data-en="Software offloading puts established connections on a kernel fastpath, but the CPU still moves the packets. Hardware offloading hands them to the MT7621's packet engine (PPE) instead — same throughput, far less CPU. On this router both land around the same speed (~600 Mbps here, vs ~100 with no offloading), so hardware wins on efficiency. Two caveats, neither relevant to this setup: it doesn't accelerate WireGuard (the CPU still encrypts the tunnel), and it's incompatible with SQM/QoS." data-es="El software offloading pone las conexiones ya establecidas en un fastpath del kernel, pero la CPU sigue moviendo los paquetes. El hardware offloading se los pasa al motor de paquetes (PPE) del MT7621 — mismo throughput, mucha menos CPU. En este router los dos dan más o menos la misma velocidad (~600 Mbps acá, contra ~100 sin offloading), así que el de hardware gana por eficiencia. Dos salvedades, ninguna relevante en este setup: no acelera WireGuard (la CPU igual cifra el túnel) y es incompatible con SQM/QoS.">Software offloading puts established connections on a kernel fastpath, but the CPU still moves the packets. Hardware offloading hands them to the MT7621's packet engine (PPE) instead — same throughput, far less CPU. On this router both land around the same speed (~600 Mbps here, vs ~100 with no offloading), so hardware wins on efficiency. Two caveats, neither relevant to this setup: it doesn't accelerate WireGuard (the CPU still encrypts the tunnel), and it's incompatible with SQM/QoS.</p></div>
+<h3 data-en="5. Hardware flow offloading" data-es="5. Hardware flow offloading">5. Hardware flow offloading</h3><p data-en="This one is <strong>not</strong> a traffic rule — it's a single checkbox. <strong>Network → Firewall → General Settings</strong> → under <strong>Routing/NAT Offloading</strong> tick <strong>Software flow offloading</strong> and then <strong>Hardware flow offloading</strong> (the hardware option only becomes available once software is on)." data-es="Este <strong>no</strong> es un traffic rule — es un solo checkbox. <strong>Network → Firewall → General Settings</strong> → en <strong>Routing/NAT Offloading</strong> tildá <strong>Software flow offloading</strong> y después <strong>Hardware flow offloading</strong> (la opción de hardware solo aparece cuando la de software está activada).">This one is <strong>not</strong> a traffic rule — it's a single checkbox. <strong>Network → Firewall → General Settings</strong> → under <strong>Routing/NAT Offloading</strong> tick <strong>Software flow offloading</strong> and then <strong>Hardware flow offloading</strong> (the hardware option only becomes available once software is on).</p><blockquote><p data-en="Software offloading puts established connections on a kernel fastpath, but the CPU still moves the packets. Hardware offloading hands them to the MT7621's packet engine (PPE) instead — same throughput, far less CPU. On this router both land around the same speed (~600 Mbps here, vs ~100 with no offloading), so hardware wins on efficiency. Two caveats, neither relevant to this setup: it doesn't accelerate WireGuard (the CPU still encrypts the tunnel), and it's incompatible with SQM/QoS." data-es="El software offloading pone las conexiones ya establecidas en un fastpath del kernel, pero la CPU sigue moviendo los paquetes. El hardware offloading se los pasa al motor de paquetes (PPE) del MT7621 — mismo throughput, mucha menos CPU. En este router los dos dan más o menos la misma velocidad (~600 Mbps acá, contra ~100 sin offloading), así que el de hardware gana por eficiencia. Dos salvedades, ninguna relevante en este setup: no acelera WireGuard (la CPU igual cifra el túnel) y es incompatible con SQM/QoS.">Software offloading puts established connections on a kernel fastpath, but the CPU still moves the packets. Hardware offloading hands them to the MT7621's packet engine (PPE) instead — same throughput, far less CPU. On this router both land around the same speed (~600 Mbps here, vs ~100 with no offloading), so hardware wins on efficiency. Two caveats, neither relevant to this setup: it doesn't accelerate WireGuard (the CPU still encrypts the tunnel), and it's incompatible with SQM/QoS.</p></blockquote>
 </section>
 <section id="cfg-ipv6">
 <h3 data-en="6. Disable IPv6" data-es="6. Desactivar IPv6">6. Disable IPv6</h3><p data-en="We won't use IPv6, so remove it in two places." data-es="No vamos a usar IPv6, así que lo sacamos en dos lugares.">We won't use IPv6, so remove it in two places.</p><h4 data-en="Remove the WAN IPv6 interface" data-es="Sacar la interfaz IPv6 del WAN">Remove the WAN IPv6 interface</h4><p data-en="<strong>Network → Interfaces</strong> → delete the <code>wan6</code> interface (the IPv6 one on WAN). We don't use it." data-es="<strong>Network → Interfaces</strong> → borrá la interfaz <code>wan6</code> (la de IPv6 sobre el WAN). No la usamos."><strong>Network → Interfaces</strong> → delete the <code>wan6</code> interface (the IPv6 one on WAN). We don't use it.</p><h4 data-en="Turn off IPv6 on the LAN" data-es="Apagar IPv6 en la LAN">Turn off IPv6 on the LAN</h4><p data-en="<strong>Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings</strong>:" data-es="<strong>Network → Interfaces → LAN → Editar → DHCP Server → pestaña IPv6 Settings</strong>:"><strong>Network → Interfaces → LAN → Edit → DHCP Server → IPv6 Settings</strong>:</p><pre><code>RA-Service        disabled
 DHCPv6-Service    disabled</code></pre>
-<div class="callout info"><p data-en="With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only." data-es="Con <code>wan6</code> borrada y RA / DHCPv6 deshabilitados, la LAN deja de repartir direcciones IPv6 y el router queda solo IPv4.">With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only.</p></div>
+<blockquote><p data-en="With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only." data-es="Con <code>wan6</code> borrada y RA / DHCPv6 deshabilitados, la LAN deja de repartir direcciones IPv6 y el router queda solo IPv4.">With <code>wan6</code> gone and RA / DHCPv6 disabled, the LAN stops handing out IPv6 addresses and the router runs IPv4-only.</p></blockquote>
 </section>
 <section id="cfg-doh">
 <h3 data-en="7. DNS over HTTPS" data-es="7. DNS over HTTPS">7. DNS over HTTPS</h3><p data-en="<strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare." data-es="<strong>System → Software → Update lists</strong> → instalar <code>luci-app-https-dns-proxy</code>. Con instalarlo ya queda andando: el DNS del router sale cifrado a Cloudflare."><strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare.</p><h4 data-en="Make it exclusive (stop the plaintext leak to your ISP)" data-es="Hacelo exclusivo (cortar la fuga en texto plano al ISP)">Make it exclusive (stop the plaintext leak to your ISP)</h4><p data-en="By default the WAN still injects your ISP's plaintext DNS, so some queries leak unencrypted. Turn that off: <strong>Network → Interfaces → WAN → Edit → Advanced Settings</strong> → untick <strong>Use DNS servers advertised by peer</strong>. Now the router only forwards to the encrypted proxy." data-es="Por default el WAN sigue metiendo el DNS en texto plano de tu ISP, así que algunas consultas se filtran sin cifrar. Apagalo: <strong>Network → Interfaces → WAN → Editar → Advanced Settings</strong> → destildá <strong>Use DNS servers advertised by peer</strong>. Ahora el router solo reenvía al proxy cifrado.">By default the WAN still injects your ISP's plaintext DNS, so some queries leak unencrypted. Turn that off: <strong>Network → Interfaces → WAN → Edit → Advanced Settings</strong> → untick <strong>Use DNS servers advertised by peer</strong>. Now the router only forwards to the encrypted proxy.</p>
 </section>
 <section id="cfg-adblock">
-<h3 data-en="8. AdBlock" data-es="8. AdBlock">8. AdBlock</h3><p data-en="Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list)." data-es="Instalar <code>luci-app-adblock-fast</code> → activar el servicio → elegir <strong>Hagezi Pro</strong> (primero de la lista).">Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list).</p><div class="callout info"><p data-en="To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>." data-es="Para que adblock-fast vaya más rápido, instalá también estos paquetes desde <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> y <code>coreutils-sort</code>.">To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>.</p></div>
+<h3 data-en="8. AdBlock" data-es="8. AdBlock">8. AdBlock</h3><p data-en="Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list)." data-es="Instalar <code>luci-app-adblock-fast</code> → activar el servicio → elegir <strong>Hagezi Pro</strong> (primero de la lista).">Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list).</p><blockquote><p data-en="To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>." data-es="Para que adblock-fast vaya más rápido, instalá también estos paquetes desde <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> y <code>coreutils-sort</code>.">To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>.</p></blockquote>
 </section>
 <section id="cfg-ddns">
 <h3 data-en="9. DDNS <small>— needed by WireGuard</small>" data-es="9. DDNS <small>— lo necesita WireGuard</small>">9. DDNS <small>— needed by WireGuard</small></h3><p data-en="Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:" data-es="Instalar <code>luci-app-ddns</code>. En <strong>Services → Dynamic DNS</strong>:">Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:</p><pre><code>name              myddns
@@ -1004,16 +926,7 @@ HTTPS             on</code></pre>
 Protocol     WireGuard VPN
 Listen Port  53320
 IP address   10.8.0.1/24</code></pre>
-<p data-en="Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works." data-es="Tocá <strong>Generate a new key pair</strong> para wg0 una sola vez (acá nada más, nunca más). <code>53320</code> es un ejemplo — sirve cualquier puerto UDP libre.">Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works.</p><h4 data-en="Traffic Rule — DNS for the peers" data-es="Traffic Rule — DNS para los peers">Traffic Rule — DNS for the peers</h4><pre><code>name         Allow-VPN-DNS
-source       vpn
-destination  Device (input)
-protocol     TCP + UDP
-port         53</code></pre>
-<h4 data-en="Traffic Rule — open the WG port from outside" data-es="Traffic Rule — abrir el puerto WG desde afuera">Traffic Rule — open the WG port from outside</h4><pre><code>name         Allow-WireGuard
-source       wan
-destination  Device (input)
-protocol     UDP
-port         53320</code></pre>
+<p data-en="Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works." data-es="Tocá <strong>Generate a new key pair</strong> para wg0 una sola vez (acá nada más, nunca más). <code>53320</code> es un ejemplo — sirve cualquier puerto UDP libre.">Hit <strong>Generate a new key pair</strong> for wg0 once (only here, never again). <code>53320</code> is just an example — any free UDP port works.</p>
 <h4 data-en="The <code>vpn</code> zone" data-es="Zona <code>vpn</code>">The <code>vpn</code> zone</h4><p data-en="<strong>Firewall → Zones</strong>. Peers reach the internet but can't see the LAN:" data-es="<strong>Firewall → Zones</strong>. Los peers salen a internet pero no ven la LAN:"><strong>Firewall → Zones</strong>. Peers reach the internet but can't see the LAN:</p><pre><code>name                       vpn
 input                      drop
 output                     accept
@@ -1023,68 +936,24 @@ mss clamping               on
 covered networks           wg0
 allow forward to dest      wan
 allow forward from source  (empty)</code></pre>
-<h4 data-en="Peer <small>— one per device</small>" data-es="Peer <small>— uno por dispositivo</small>">Peer <small>— one per device</small></h4><pre><code>name                   phone1
-Allowed IPs            10.8.0.2/32
-endpoint host          (empty)
-endpoint port          (empty)
-Persistent Keep Alive  25</code></pre>
-<p data-en="Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app." data-es="Generá key pair <em>y</em> preshared key <strong>solo del peer</strong> (no del wg0). El siguiente dispositivo es <code>10.8.0.3/32</code> — siempre <code>/32</code>. El Keep Alive <code>25</code> sale en el QR, así no tocás la app del celu.">Generate a key pair <em>and</em> a preshared key for the <strong>peer only</strong> (not wg0). The next device is <code>10.8.0.3/32</code> — always <code>/32</code>. Keep Alive <code>25</code> ends up in the QR, so you don't touch the phone app.</p><h4 data-en="Generate configuration → QR" data-es="Generate configuration → QR">Generate configuration → QR</h4><p data-en="Scan the QR with the phone app. Mind the DNS:" data-es="Escaneá el QR con la app del celu. Ojo el DNS:">Scan the QR with the phone app. Mind the DNS:</p><pre><code>DNS Servers   10.8.0.1</code></pre>
+<h4 data-en="Traffic Rule — DNS for the peers" data-es="Traffic Rule — DNS para los peers">Traffic Rule — DNS for the peers</h4><pre><code>name         Allow-VPN-DNS
+source       vpn
+destination  Device (input)
+protocol     TCP + UDP
+port         53</code></pre>
+<h4 data-en="Traffic Rule — open the WG port from outside" data-es="Traffic Rule — abrir el puerto WG desde afuera">Traffic Rule — open the WG port from outside</h4><pre><code>name         Allow-WireGuard
+source       wan
+destination  Device (input)
+protocol     UDP
+port         53320</code></pre>
+<h4 data-en="Peer <small>— one per device</small>" data-es="Peer <small>— uno por dispositivo</small>">Peer <small>— one per device</small></h4><pre><code>name         phone1
+Allowed IPs  10.8.0.2/32</code></pre>
+<p data-en="Generate a key pair for the <strong>peer only</strong> (not wg0). Its <strong>private key</strong> is all you need — that's what lets LuCI build the downloadable config (<code>.conf</code>) and the QR. The preshared key is optional, so we skip it. The next device is <code>10.8.0.3/32</code>, then <code>10.8.0.4/32</code>, and so on — always <code>/32</code>." data-es="Generá un key pair <strong>solo del peer</strong> (no del wg0). Con su <strong>private key</strong> alcanza — es lo que le permite a LuCI armar la config descargable (<code>.conf</code>) y el QR. La preshared key es opcional, así que la omitimos. El siguiente dispositivo es <code>10.8.0.3/32</code>, después <code>10.8.0.4/32</code>, y así — siempre <code>/32</code>.">Generate a key pair for the <strong>peer only</strong> (not wg0). Its <strong>private key</strong> is all you need — that's what lets LuCI build the downloadable config (<code>.conf</code>) and the QR. The preshared key is optional, so we skip it. The next device is <code>10.8.0.3/32</code>, then <code>10.8.0.4/32</code>, and so on — always <code>/32</code>.</p><h4 data-en="Generate configuration → QR" data-es="Generate configuration → QR">Generate configuration → QR</h4><p data-en="Scan the QR with the phone app. Mind the DNS:" data-es="Escaneá el QR con la app del celu. Ojo el DNS:">Scan the QR with the phone app. Mind the DNS:</p><pre><code>DNS Servers   10.8.0.1</code></pre>
 <p data-en="Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>." data-es="Usá <code>10.8.0.1</code> (la IP del túnel) para el DNS, <strong>no</strong> <code>192.168.1.1</code>.">Use <code>10.8.0.1</code> (the tunnel IP) for DNS, <strong>not</strong> <code>192.168.1.1</code>.</p>
-<h4 data-en="From a laptop (GNOME) — no QR" data-es="Desde una laptop (GNOME) — sin QR">From a laptop (GNOME) — no QR</h4>
-<p data-en="A laptop can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that text is everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above). The <code>PrivateKey</code>, <code>PublicKey</code> and <code>PresharedKey</code> mentioned below are lines in that block. Two ways to load it:" data-es="Una laptop no puede escanear el QR — pero la misma página <strong>Generate configuration</strong> también imprime la config en texto plano al lado, y ese texto es todo lo que GNOME necesita. Poné sus <strong>Servidores DNS</strong> en <code>10.8.0.1</code> primero (misma nota que arriba). <code>PrivateKey</code>, <code>PublicKey</code> y <code>PresharedKey</code> que se nombran abajo son líneas de ese bloque. Dos formas de cargarlo:">A laptop can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that text is everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above). The <code>PrivateKey</code>, <code>PublicKey</code> and <code>PresharedKey</code> mentioned below are lines in that block. Two ways to load it:</p>
-<p data-en="<strong>Option A — import the file (fastest).</strong> Paste the text config into a file, e.g. <code>wg-home.conf</code>, and import it:" data-es="<strong>Opción A — importar el archivo (lo más rápido).</strong> Pegá la config de texto en un archivo, ej. <code>wg-casa.conf</code>, e importalo:"><strong>Option A — import the file (fastest).</strong> Paste the text config into a file, e.g. <code>wg-home.conf</code>, and import it:</p>
+<h4 data-en="From a computer (GNOME) — no QR" data-es="Desde una computadora (GNOME) — sin QR">From a computer (GNOME) — no QR</h4>
+<p data-en="A computer can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that's everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above), then save that text to a file (e.g. <code>wg-home.conf</code>) and import it:" data-es="Una computadora no puede escanear el QR — pero la misma página <strong>Generate configuration</strong> también imprime la config en texto plano al lado, y eso es todo lo que GNOME necesita. Poné sus <strong>Servidores DNS</strong> en <code>10.8.0.1</code> primero (misma nota que arriba), después guardá ese texto en un archivo (ej. <code>wg-casa.conf</code>) e importalo:">A computer can't scan the QR — but the same <strong>Generate configuration</strong> page also prints the config as plain text beside it, and that's everything GNOME needs. Set its <strong>DNS Servers</strong> to <code>10.8.0.1</code> first (same note as above), then save that text to a file (e.g. <code>wg-home.conf</code>) and import it:</p>
 <pre data-en="<code>nmcli connection import type wireguard file wg-home.conf</code>" data-es="<code>nmcli connection import type wireguard file wg-casa.conf</code>"><code>nmcli connection import type wireguard file wg-home.conf</code></pre>
 <p data-en="That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand." data-es="Listo — el túnel ahora aparece en <strong>Ajustes → Red</strong>, donde lo prendés y apagás. La importación trae todos los campos de una, así no hay nada que cargar a mano.">That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand.</p>
-<p data-en="<strong>Option B — by hand</strong>, if you'd rather stay in the GUI: <strong>Settings → Network → VPN → + → WireGuard</strong>, then fill three tabs." data-es="<strong>Opción B — a mano</strong>, si preferís quedarte en la GUI: <strong>Ajustes → Red → VPN → + → WireGuard</strong>, y llená tres pestañas."><strong>Option B — by hand</strong>, if you'd rather stay in the GUI: <strong>Settings → Network → VPN → + → WireGuard</strong>, then fill three tabs.</p>
-<pre data-en="<code>WireGuard tab
-  Connection name   anything you like
-  Interface name    wg-home   (one token, no spaces)
-  Private key       PrivateKey  (from [Interface])
-  Listen port       51820   (client's local port, not the server's)
-  fwmark / MTU      0 / 0</code>" data-es="<code>Pestaña WireGuard
-  Nombre de la conexión  la que quieras
-  Nombre de la interfaz  wg-casa   (un token, sin espacios)
-  Clave privada          PrivateKey  (de [Interface])
-  Escuchar puerto        51820   (puerto local del cliente, no el del server)
-  fwmark / MTU           0 / 0</code>"><code>WireGuard tab
-  Connection name   anything you like
-  Interface name    wg-home   (one token, no spaces)
-  Private key       PrivateKey  (from [Interface])
-  Listen port       51820   (client's local port, not the server's)
-  fwmark / MTU      0 / 0</code></pre>
-<pre data-en="<code>Peer   (WireGuard tab → Peers → +)
-  Endpoint              YOURNAME.duckdns.org:53320
-  Public key            PublicKey  (from [Peer] — the server's)
-  Pre-shared key        PresharedKey  (from [Peer])
-  Allowed IPs           0.0.0.0/0
-  Persistent keepalive  25   (change it from 0)</code>" data-es="<code>Par   (pestaña WireGuard → Pares → +)
-  Terminador                 TUNOMBRE.duckdns.org:53320
-  Clave pública              PublicKey  (de [Peer] — la del server)
-  Clave pre-compartida       PresharedKey  (de [Peer])
-  Direcciones IP permitidas  0.0.0.0/0
-  Keepalive persistente      25   (cambialo de 0)</code>"><code>Peer   (WireGuard tab → Peers → +)
-  Endpoint              YOURNAME.duckdns.org:53320
-  Public key            PublicKey  (from [Peer] — the server's)
-  Pre-shared key        PresharedKey  (from [Peer])
-  Allowed IPs           0.0.0.0/0
-  Persistent keepalive  25   (change it from 0)</code></pre>
-<pre data-en="<code>IPv4 tab   (separate tab)
-  Method     Manual   (not Automatic/DHCP)
-  Address    10.8.0.2   (this peer's tunnel IP)
-  Netmask    255.255.255.255   (= /32)
-  Gateway    (leave empty)
-  DNS        10.8.0.1   (turn &quot;Automatic&quot; off)</code>" data-es="<code>Pestaña IPv4   (pestaña aparte)
-  Método            Manual   (no Automático/DHCP)
-  Dirección         10.8.0.2   (la IP del túnel de este peer)
-  Máscara           255.255.255.255   (= /32)
-  Puerta de enlace  (dejala vacía)
-  DNS               10.8.0.1   (apagá el &quot;Automático&quot;)</code>"><code>IPv4 tab   (separate tab)
-  Method     Manual   (not Automatic/DHCP)
-  Address    10.8.0.2   (this peer's tunnel IP)
-  Netmask    255.255.255.255   (= /32)
-  Gateway    (leave empty)
-  DNS        10.8.0.1   (turn &quot;Automatic&quot; off)</code></pre>
-<div class="callout caution"><p data-en="Three traps worth repeating: <strong>(1)</strong> the server's port goes in the peer's <strong>Endpoint</strong>, never in <strong>Listen port</strong> — that field is the client's own local port and its value doesn't matter. <strong>(2)</strong> the peer's <strong>Public key</strong> is the <em>server's</em> key, not the laptop's. <strong>(3)</strong> IPv4 must be <strong>Manual</strong>; Automatic/DHCP won't route inside the tunnel. Until you add the peer, the <strong>Add</strong> button stays greyed out — the peer is what tells the tunnel who to talk to." data-es="Tres trampas que vale repetir: <strong>(1)</strong> el puerto del server va en el <strong>Terminador</strong> del par, nunca en <strong>Escuchar puerto</strong> — ese campo es el puerto local del cliente y su valor da igual. <strong>(2)</strong> la <strong>Clave pública</strong> del par es la del <em>server</em>, no la de la laptop. <strong>(3)</strong> IPv4 tiene que ser <strong>Manual</strong>; Automático/DHCP no rutea dentro del túnel. Hasta que no agregás el par, el botón <strong>Añadir</strong> queda gris — el par es lo que le dice al túnel con quién hablar.">Three traps worth repeating: <strong>(1)</strong> the server's port goes in the peer's <strong>Endpoint</strong>, never in <strong>Listen port</strong> — that field is the client's own local port and its value doesn't matter. <strong>(2)</strong> the peer's <strong>Public key</strong> is the <em>server's</em> key, not the laptop's. <strong>(3)</strong> IPv4 must be <strong>Manual</strong>; Automatic/DHCP won't route inside the tunnel. Until you add the peer, the <strong>Add</strong> button stays greyed out — the peer is what tells the tunnel who to talk to.</p></div>
 </section>
 <section id="cfg-ntp">
 <h3 data-en="11. NTP with NTS" data-es="11. NTP con NTS">11. NTP with NTS</h3><p data-en="Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:" data-es="Instalá <code>luci-app-chrony</code> y <code>chrony-nts</code>. Armá un server:">Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:</p><pre><code>server   time.cloudflare.com
@@ -1135,14 +1004,14 @@ function generatePasswords(){
   var results = document.getElementById('pwResults');
   if (raw.length > 0 && !mac){
     macInput.setAttribute('aria-invalid', 'true');
-    macErr.classList.remove('hidden');
-    results.classList.add('hidden');
+    macErr.hidden = false;
+    results.hidden = true;
     return;
   }
   macInput.removeAttribute('aria-invalid');
-  macErr.classList.add('hidden');
-  if (!mac || !raw.length){ results.classList.add('hidden'); return; }
-  results.classList.remove('hidden');
+  macErr.hidden = true;
+  if (!mac || !raw.length){ results.hidden = true; return; }
+  results.hidden = false;
   document.getElementById('pwRoot').textContent  = (username.length > 0) ? md5(mac + username).slice(0,16) : '—';
   document.getElementById('pwCli212').textContent = md5(mac + 'admin').slice(0,16);
   document.getElementById('pwCli222').textContent = md5(mac + 'admin' + mac + 'admin').slice(0,16);
