@@ -13,7 +13,12 @@
 
 <nav>
   <ul></ul>
-  <ul><li><button id="langToggle" class="outline" onclick="toggleLang()">Español</button></li></ul>
+  <ul>
+    <li role="group">
+      <button id="langEs" class="outline" onclick="setLang('es')">Español</button>
+      <button id="langEn" onclick="setLang('en')">English</button>
+    </li>
+  </ul>
 </nav>
 
 <header>
@@ -43,9 +48,9 @@
       <a href="#cfg-ipv6" data-en="Disable IPv6" data-es="Desactivar IPv6">Disable IPv6</a>
       <a href="#cfg-doh" data-en="Encrypted DNS" data-es="DNS cifrado">Encrypted DNS</a>
       <a href="#cfg-adblock" data-en="AdBlock" data-es="AdBlock">AdBlock</a>
+      <a href="#cfg-ntp" data-en="NTP + NTS" data-es="NTP + NTS">NTP + NTS</a>
       <a href="#cfg-ddns" data-en="DDNS" data-es="DDNS">DDNS</a>
       <a href="#cfg-wireguard" data-en="WireGuard" data-es="WireGuard">WireGuard</a>
-      <a href="#cfg-ntp" data-en="NTP + NTS" data-es="NTP + NTS">NTP + NTS</a>
     </small>
   </nav>
 </header>
@@ -909,10 +914,16 @@ DHCPv6-Service    disabled</code></pre>
 <h3 data-en="7. DNS over HTTPS" data-es="7. DNS over HTTPS">7. DNS over HTTPS</h3><p data-en="<strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare." data-es="<strong>System → Software → Update lists</strong> → instalar <code>luci-app-https-dns-proxy</code>. Con instalarlo ya queda andando: el DNS del router sale cifrado a Cloudflare."><strong>System → Software → Update lists</strong> → install <code>luci-app-https-dns-proxy</code>. Installing it is enough: the router's DNS now leaves encrypted to Cloudflare.</p><h4 data-en="Make it exclusive (stop the plaintext leak to your ISP)" data-es="Hacelo exclusivo (cortar la fuga en texto plano al ISP)">Make it exclusive (stop the plaintext leak to your ISP)</h4><p data-en="By default the WAN still injects your ISP's plaintext DNS, so some queries leak unencrypted. Turn that off: <strong>Network → Interfaces → WAN → Edit → Advanced Settings</strong> → untick <strong>Use DNS servers advertised by peer</strong>. Now the router only forwards to the encrypted proxy." data-es="Por default el WAN sigue metiendo el DNS en texto plano de tu ISP, así que algunas consultas se filtran sin cifrar. Apagalo: <strong>Network → Interfaces → WAN → Editar → Advanced Settings</strong> → destildá <strong>Use DNS servers advertised by peer</strong>. Ahora el router solo reenvía al proxy cifrado.">By default the WAN still injects your ISP's plaintext DNS, so some queries leak unencrypted. Turn that off: <strong>Network → Interfaces → WAN → Edit → Advanced Settings</strong> → untick <strong>Use DNS servers advertised by peer</strong>. Now the router only forwards to the encrypted proxy.</p>
 </section>
 <section id="cfg-adblock">
-<h3 data-en="8. AdBlock" data-es="8. AdBlock">8. AdBlock</h3><p data-en="Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list)." data-es="Instalar <code>luci-app-adblock-fast</code> → activar el servicio → elegir <strong>Hagezi Pro</strong> (primero de la lista).">Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list).</p><blockquote><p data-en="To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>." data-es="Para que adblock-fast vaya más rápido, instalá también estos paquetes desde <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> y <code>coreutils-sort</code>.">To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>.</p></blockquote>
+<h3 data-en="8. AdBlock" data-es="8. AdBlock">8. AdBlock</h3><p data-en="Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list)." data-es="Instalar <code>luci-app-adblock-fast</code> → activar el servicio → elegir <strong>Hagezi Pro</strong> (primero de la lista).">Install <code>luci-app-adblock-fast</code> → enable the service → pick <strong>Hagezi Pro</strong> (first on the list).</p><blockquote><p data-en="<strong>Enable only Hagezi Pro</strong> — a single blocklist. If you tick several lists at once, the combined size overwhelms <code>dnsmasq</code>, <code>adblock-fast</code> fails to start, and DNS stops working. Keep the number of enabled blocklists to a minimum — one is enough." data-es="<strong>Activá solo Hagezi Pro</strong> — una sola blocklist. Si tildás varias listas a la vez, el tamaño combinado desborda a <code>dnsmasq</code>, <code>adblock-fast</code> no arranca y el DNS deja de andar. Mantené la cantidad de blocklists activadas al mínimo — con una alcanza."><strong>Enable only Hagezi Pro</strong> — a single blocklist. If you tick several lists at once, the combined size overwhelms <code>dnsmasq</code>, <code>adblock-fast</code> fails to start, and DNS stops working. Keep the number of enabled blocklists to a minimum — one is enough.</p></blockquote><blockquote><p data-en="To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>." data-es="Para que adblock-fast vaya más rápido, instalá también estos paquetes desde <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> y <code>coreutils-sort</code>.">To make adblock-fast run faster, also install these packages from <strong>System → Software</strong>: <code>gawk</code>, <code>grep</code>, <code>sed</code> and <code>coreutils-sort</code>.</p></blockquote>
+</section>
+<section id="cfg-ntp">
+<h3 data-en="9. NTP with NTS" data-es="9. NTP con NTS">9. NTP with NTS</h3><p data-en="Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:" data-es="Instalá <code>luci-app-chrony</code> y <code>chrony-nts</code>. Armá un server:">Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:</p><pre><code>server   time.cloudflare.com
+iburst   on
+nts      on</code></pre>
+<p data-en="Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>." data-es="Borrá el <code>pool</code> default. Después andá a <strong>System → Startup</strong> y deshabilitá <code>sysntpd</code>.">Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>.</p>
 </section>
 <section id="cfg-ddns">
-<h3 data-en="9. DDNS <small>— needed by WireGuard</small>" data-es="9. DDNS <small>— lo necesita WireGuard</small>">9. DDNS <small>— needed by WireGuard</small></h3><p data-en="Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:" data-es="Instalar <code>luci-app-ddns</code>. En <strong>Services → Dynamic DNS</strong>:">Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:</p><pre><code>name              myddns
+<h3 data-en="10. DDNS <small>— needed by WireGuard</small>" data-es="10. DDNS <small>— lo necesita WireGuard</small>">10. DDNS <small>— needed by WireGuard</small></h3><p data-en="Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:" data-es="Instalar <code>luci-app-ddns</code>. En <strong>Services → Dynamic DNS</strong>:">Install <code>luci-app-ddns</code>. In <strong>Services → Dynamic DNS</strong>:</p><pre><code>name              myddns
 service provider  duckdns.org
 lookup hostname   YOURNAME.duckdns.org
 domain            YOURNAME
@@ -922,7 +933,7 @@ HTTPS             on</code></pre>
 <p data-en="Pick <code>duckdns.org</code> from the provider list (don't use <em>custom</em>). In <strong>domain</strong> put just your subdomain. LuCI won't accept an empty <strong>username</strong>, so repeat the hostname — duckdns ignores it." data-es="Elegí <code>duckdns.org</code> de la lista de proveedores (no uses <em>custom</em>). En <strong>domain</strong> va solo tu subdominio. LuCI no deja vacío el <strong>username</strong>, así que repetí el hostname — duckdns lo ignora.">Pick <code>duckdns.org</code> from the provider list (don't use <em>custom</em>). In <strong>domain</strong> put just your subdomain. LuCI won't accept an empty <strong>username</strong>, so repeat the hostname — duckdns ignores it.</p>
 </section>
 <section id="cfg-wireguard">
-<h3 data-en="10. WireGuard" data-es="10. WireGuard">10. WireGuard</h3><p data-en="Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:" data-es="Instalar <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:">Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:</p><pre><code>Name         wg0
+<h3 data-en="11. WireGuard" data-es="11. WireGuard">11. WireGuard</h3><p data-en="Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:" data-es="Instalar <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:">Install <code>luci-proto-wireguard</code>. <strong>Network → Interfaces → Add new interface</strong>:</p><pre><code>Name         wg0
 Protocol     WireGuard VPN
 Listen Port  53320
 IP address   10.8.0.1/24</code></pre>
@@ -955,12 +966,6 @@ Allowed IPs  10.8.0.2/32</code></pre>
 <pre data-en="<code>nmcli connection import type wireguard file wg-home.conf</code>" data-es="<code>nmcli connection import type wireguard file wg-casa.conf</code>"><code>nmcli connection import type wireguard file wg-home.conf</code></pre>
 <p data-en="That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand." data-es="Listo — el túnel ahora aparece en <strong>Ajustes → Red</strong>, donde lo prendés y apagás. La importación trae todos los campos de una, así no hay nada que cargar a mano.">That's it — the tunnel now appears under <strong>Settings → Network</strong>, where you switch it on and off. The import pulls every field in at once, so there's nothing to type by hand.</p>
 </section>
-<section id="cfg-ntp">
-<h3 data-en="11. NTP with NTS" data-es="11. NTP con NTS">11. NTP with NTS</h3><p data-en="Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:" data-es="Instalá <code>luci-app-chrony</code> y <code>chrony-nts</code>. Armá un server:">Install <code>luci-app-chrony</code> and <code>chrony-nts</code>. Build a server:</p><pre><code>server   time.cloudflare.com
-iburst   on
-nts      on</code></pre>
-<p data-en="Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>." data-es="Borrá el <code>pool</code> default. Después andá a <strong>System → Startup</strong> y deshabilitá <code>sysntpd</code>.">Delete the default <code>pool</code>. Then go to <strong>System → Startup</strong> and disable <code>sysntpd</code>.</p>
-</section>
 
 <footer>
 <p data-en="Flashing part based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>chill1Penguin's method</a> (password generator, backup scripts and initramfs image). The generator runs 100% in your browser: nothing is sent to any server. GUI configuration is my own. Licensed under <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>." data-es="Parte de flasheo basada en el <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>método de chill1Penguin</a> (generador de contraseñas, scripts de backup e imagen initramfs). El generador corre 100% en tu navegador: nada se envía a ningún servidor. La configuración por GUI es propia. Licencia <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>.">Flashing part based on <a href='https://github.com/chill1Penguin/er605v2_openwrt_install'>chill1Penguin's method</a> (password generator, backup scripts and initramfs image). The generator runs 100% in your browser: nothing is sent to any server. GUI configuration is my own. Licensed under <a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>GPL-2.0</a>.</p>
@@ -977,8 +982,16 @@ function setLang(lang){
   currentLang = lang;
   try { localStorage.setItem('er605-lang', lang); } catch (e) {}
   document.documentElement.lang = lang;
-  var btn = document.getElementById('langToggle');
-  if (btn) btn.textContent = (lang === 'en') ? 'Español' : 'English';
+  var btnEs = document.getElementById('langEs');
+  var btnEn = document.getElementById('langEn');
+  if (btnEs && btnEn){
+    // El idioma activo queda como boton solido (color llamativo);
+    // el inactivo queda como outline.
+    btnEs.classList.toggle('outline', lang !== 'es');
+    btnEn.classList.toggle('outline', lang !== 'en');
+    btnEs.setAttribute('aria-current', lang === 'es' ? 'true' : 'false');
+    btnEn.setAttribute('aria-current', lang === 'en' ? 'true' : 'false');
+  }
   document.querySelectorAll('[data-en]').forEach(function(el){
     var text = el.getAttribute('data-' + lang);
     if (text !== null) el.innerHTML = text;
@@ -987,7 +1000,6 @@ function setLang(lang){
     el.textContent = (lang === 'es') ? 'Copiar' : 'Copy';
   });
 }
-function toggleLang(){ setLang(currentLang === 'en' ? 'es' : 'en'); }
 
 // ===== PASSWORD GENERATOR (runs entirely in the browser) =====
 function normalizeMac(input){
