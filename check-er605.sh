@@ -51,6 +51,36 @@ fw_rule_enabled() {
   return 2
 }
 
+# index of the firewall zone named $1 (echoed), or non-zero if not found
+fw_zone_idx() {
+  i=0
+  while n=$(uci -q get firewall.@zone[$i].name); do
+    [ "$n" = "$1" ] && { echo "$i"; return 0; }
+    i=$((i+1)); [ "$i" -gt 30 ] && break
+  done
+  return 1
+}
+
+# is there a forwarding from src $1 to dest $2 ?
+fw_forwarding_exists() {
+  i=0
+  while s=$(uci -q get firewall.@forwarding[$i].src); do
+    [ "$s" = "$1" ] && [ "$(uci -q get firewall.@forwarding[$i].dest)" = "$2" ] && return 0
+    i=$((i+1)); [ "$i" -gt 40 ] && break
+  done
+  return 1
+}
+
+# echo option $2 of the traffic rule named $1
+fw_rule_get() {
+  i=0
+  while n=$(uci -q get firewall.@rule[$i].name); do
+    [ "$n" = "$1" ] && { uci -q get firewall.@rule[$i].$2; return 0; }
+    i=$((i+1)); [ "$i" -gt 80 ] && break
+  done
+  return 1
+}
+
 printf "\n${B}== OpenWrt config check · ER605 v2 ==${Z}\n\n"
 
 # 1. Root password
@@ -179,17 +209,56 @@ else
   result "10. DDNS" FAIL "service disabled"
 fi
 
-# 11. WireGuard (wg0 up + at least 1 peer)
+# 11. WireGuard interface (wg0 up + at least 1 peer)
 if command -v wg >/dev/null 2>&1 && wg show wg0 >/dev/null 2>&1; then
   peers=$(wg show wg0 peers 2>/dev/null | grep -c .)
   port=$(wg show wg0 listen-port 2>/dev/null)
   if [ "$peers" -ge 1 ]; then
-    result "11. WireGuard" OK "port $port, $peers peer(s)"
+    result "11. WireGuard (iface)" OK "port $port, $peers peer(s)"
   else
-    result "11. WireGuard" WARN "wg0 up, no peers"
+    result "11. WireGuard (iface)" WARN "wg0 up, no peers"
   fi
 else
-  result "11. WireGuard" FAIL "wg0 is not up"
+  result "11. WireGuard (iface)" FAIL "wg0 is not up"
+fi
+
+# 12. WireGuard firewall (also part of guide step 11): the 'vpn' zone + rules.
+#     wg show can report the interface up while the tunnel is still useless from
+#     outside (port closed) or peers can't reach the internet/DNS. We verify the
+#     full guide spec:
+#       - a 'vpn' zone: input drop, output accept, forward reject, masquerading,
+#         MSS clamping, covering wg0
+#       - a vpn -> wan forwarding (peers reach the internet)
+#       - NO vpn -> lan forwarding (peers must NOT see the LAN)
+#       - Allow-WireGuard rule (opens the WG UDP port from the WAN)
+#       - Allow-VPN-DNS rule (peers can resolve DNS)
+vz=$(fw_zone_idx vpn)
+fw_rule_enabled Allow-WireGuard; wgrule=$?
+fw_rule_enabled Allow-VPN-DNS;   dnsrule=$?
+fwd=no; fw_forwarding_exists vpn wan && fwd=yes
+if [ -z "$vz" ]; then
+  result "12. WireGuard firewall" FAIL "'vpn' zone missing"
+elif [ "$wgrule" != "0" ]; then
+  result "12. WireGuard firewall" FAIL "Allow-WireGuard rule missing/off: WG port closed from WAN"
+else
+  issues=""
+  [ "$(uci -q get firewall.@zone[$vz].input)" = "DROP" ]     || issues="$issues input!=DROP"
+  [ "$(uci -q get firewall.@zone[$vz].output)" = "ACCEPT" ]  || issues="$issues output!=ACCEPT"
+  [ "$(uci -q get firewall.@zone[$vz].forward)" = "REJECT" ] || issues="$issues forward!=REJECT"
+  [ "$(uci -q get firewall.@zone[$vz].masq)" = "1" ]         || issues="$issues masq"
+  [ "$(uci -q get firewall.@zone[$vz].mtu_fix)" = "1" ]      || issues="$issues mss"
+  echo " $(uci -q get firewall.@zone[$vz].network) " | grep -q " wg0 " || issues="$issues covers-wg0"
+  [ "$fwd" = yes ] || issues="$issues vpn->wan"
+  fw_forwarding_exists vpn lan && issues="$issues vpn->lan-LEAK"
+  [ "$dnsrule" = "0" ] || issues="$issues dns-rule"
+  wgport=$(wg show wg0 listen-port 2>/dev/null)
+  ruleport=$(fw_rule_get Allow-WireGuard dest_port)
+  [ -n "$wgport" ] && [ -n "$ruleport" ] && [ "$wgport" != "$ruleport" ] && issues="$issues port($ruleport!=$wgport)"
+  if [ -z "$issues" ]; then
+    result "12. WireGuard firewall" OK "vpn zone (drop/masq/mss, no LAN) + WAN rule + fwd + DNS rule"
+  else
+    result "12. WireGuard firewall" WARN "vpn zone + port ok; issues:$issues"
+  fi
 fi
 
 printf "\n${B}Summary:${Z} ${G}%s OK${Z} · ${R}%s with issues${Z}\n\n" "$ok" "$fail"
